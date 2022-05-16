@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS "user_conversation";
+DROP TABLE IF EXISTS "Message";
+DROP TABLE IF EXISTS Conversation;
+DROP TABLE IF EXISTS "Users";
