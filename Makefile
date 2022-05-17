@@ -10,7 +10,10 @@ dropdb:
 upmigrate:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5588/message_db?sslmode=disable" -verbose up
 
-dnmigrate:
+downnmigrate:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5588/message_db?sslmode=disable" -verbose down
 
-.PHONY: postgres createdb dropdb upmigrate
+sqlc:
+	sqlc generate
+
+.PHONY: postgres createdb dropdb upmigrate downnmigrate sqlc
