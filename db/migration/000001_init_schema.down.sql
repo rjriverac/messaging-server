@@ -1,4 +1,6 @@
-DROP TABLE IF EXISTS "user_conversation";
-DROP TABLE IF EXISTS Conversation;
-DROP TABLE IF EXISTS "Message";
-DROP TABLE IF EXISTS "Users";
+DROP TABLE IF EXISTS 
+"Conversation",
+"user_conversation",
+"Message",
+"Users",
+CASCADE;
