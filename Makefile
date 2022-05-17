@@ -6,5 +6,11 @@ createdb:
 
 dropdb:
 	docker exec -it messagedb dropdb message_db
-	
-.PHONY: postgres createdb dropdb
+
+upmigrate:
+	migrate -path db/migration -database "postgresql://root:secret@localhost:5588/message_db?sslmode=disable" -verbose up
+
+dnmigrate:
+	migrate -path db/migration -database "postgresql://root:secret@localhost:5588/message_db?sslmode=disable" -verbose down
+
+.PHONY: postgres createdb dropdb upmigrate

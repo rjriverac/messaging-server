@@ -1,39 +1,39 @@
 CREATE TABLE "Users" (
-  "id" int UNIQUE PRIMARY KEY,
+  "id" bigserial UNIQUE PRIMARY KEY,
   "name" varchar NOT NULL,
   "email" varchar NOT NULL,
   "hashed_pw" varchar NOT NULL,
   "image" varchar,
   "status" varchar,
-  "created_at" timestamptz,
+  "created_at" timestamptz DEFAULT (now())
 );
 
 CREATE TABLE "Message" (
-  "id" int UNIQUE PRIMARY KEY,
-  "user_id" int,
+  "id" bigserial UNIQUE PRIMARY KEY,
+  "user_id" bigint NOT NULL,
   "content" varchar,
-  "created_at" timestamptz
+  "created_at" timestamptz DEFAULT (now())
 );
 
 CREATE TABLE "Conversation" (
-  "id" int UNIQUE PRIMARY KEY,
+  "id" bigserial UNIQUE PRIMARY KEY,
   "unread" int DEFAULT 0,
-  "last" int,
-  "messages" int
+  "last" bigint,
+  "messages" bigint
 );
 
 CREATE TABLE "user_conversation" (
-  "user_id" int,
-  "conv_id" int
+  "user_id" bigint,
+  "conv_id" bigint,
+  PRIMARY KEY ("user_id", "conv_id")
 );
 
-ALTER TABLE "Message" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("message");
+ALTER TABLE "Message" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
 
-ALTER TABLE "Users" ADD FOREIGN KEY ("id") REFERENCES "user_conversation" ("user_id");
+ALTER TABLE "user_conversation" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
 
-ALTER TABLE "Conversation" ADD FOREIGN KEY ("id") REFERENCES "user_conversation" ("conv_id");
+ALTER TABLE "user_conversation" ADD FOREIGN KEY ("conv_id") REFERENCES "Conversation" ("id");
 
-ALTER TABLE "Message" ADD PRIMARY KEY ("user_id","conv_id");
-ALTER TABLE "Message" ADD FOREIGN KEY ("id") REFERENCES "Conversation" ("last");
+ALTER TABLE "Conversation" ADD FOREIGN KEY ("last") REFERENCES "Message" ("id");
 
-ALTER TABLE "Message" ADD FOREIGN KEY ("id") REFERENCES "Conversation" ("messages");
+ALTER TABLE "Conversation" ADD FOREIGN KEY ("messages") REFERENCES "Message" ("id");
