@@ -1,4 +1,3 @@
 ALTER TABLE "Conversation"
-  ALTER "Messages" DROP DEFAULT,
-  ALTER "Messages" type bigint[] USING ARRAY["Messages"],
-  ALTER SET DEFAULT "{}";
+  ALTER COLUMN "Messages" type bigint[] USING array["Messages"]::BIGINT[],
+  ALTER COLUMN SET DEFAULT "{}";
