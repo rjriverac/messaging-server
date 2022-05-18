@@ -58,6 +58,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	return i, err
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM "Users"
+WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
+	return err
+}
+
 const getUser = `-- name: GetUser :one
 SELECT id,
   name,
@@ -163,7 +173,11 @@ const updateUserInfo = `-- name: UpdateUserInfo :exec
 UPDATE "Users"
 SET (name, email, image, status, hashed_pw) = ($2, $3, $4, $5, $6)
 where id = $1
-returning $1, $2, $3, $4, $5
+returning $1,
+  $2,
+  $3,
+  $4,
+  $5
 `
 
 type UpdateUserInfoParams struct {
