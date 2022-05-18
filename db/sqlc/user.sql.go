@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -19,10 +20,12 @@ INSERT INTO "Users" (
     status
   )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING $1,
-  $2,
-  $4,
-  $5
+RETURNING id,
+  name,
+  email,
+  image,
+  status,
+  created_at
 `
 
 type CreateUserParams struct {
@@ -34,10 +37,12 @@ type CreateUserParams struct {
 }
 
 type CreateUserRow struct {
-	Column1 interface{} `json:"column1"`
-	Column2 interface{} `json:"column2"`
-	Column3 interface{} `json:"column3"`
-	Column4 interface{} `json:"column4"`
+	ID        int64          `json:"id"`
+	Name      string         `json:"name"`
+	Email     string         `json:"email"`
+	Image     sql.NullString `json:"image"`
+	Status    sql.NullString `json:"status"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -50,10 +55,12 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	)
 	var i CreateUserRow
 	err := row.Scan(
-		&i.Column1,
-		&i.Column2,
-		&i.Column3,
-		&i.Column4,
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Image,
+		&i.Status,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -73,18 +80,20 @@ SELECT id,
   name,
   email,
   image,
-  status
+  status,
+  created_at
 FROM "Users"
 WHERE id = $1
 LIMIT 1
 `
 
 type GetUserRow struct {
-	ID     int64          `json:"id"`
-	Name   string         `json:"name"`
-	Email  string         `json:"email"`
-	Image  sql.NullString `json:"image"`
-	Status sql.NullString `json:"status"`
+	ID        int64          `json:"id"`
+	Name      string         `json:"name"`
+	Email     string         `json:"email"`
+	Image     sql.NullString `json:"image"`
+	Status    sql.NullString `json:"status"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
 func (q *Queries) GetUser(ctx context.Context, id int64) (GetUserRow, error) {
@@ -96,6 +105,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (GetUserRow, error) {
 		&i.Email,
 		&i.Image,
 		&i.Status,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -153,10 +163,16 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 	return items, nil
 }
 
-const updateUserImage = `-- name: UpdateUserImage :exec
+const updateUserImage = `-- name: UpdateUserImage :one
 UPDATE "Users"
 SET image = $2
 WHERE id = $1
+RETURNING id,
+  name,
+  email,
+  image,
+  status,
+  created_at
 `
 
 type UpdateUserImageParams struct {
@@ -164,20 +180,39 @@ type UpdateUserImageParams struct {
 	Image sql.NullString `json:"image"`
 }
 
-func (q *Queries) UpdateUserImage(ctx context.Context, arg UpdateUserImageParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserImage, arg.ID, arg.Image)
-	return err
+type UpdateUserImageRow struct {
+	ID        int64          `json:"id"`
+	Name      string         `json:"name"`
+	Email     string         `json:"email"`
+	Image     sql.NullString `json:"image"`
+	Status    sql.NullString `json:"status"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
-const updateUserInfo = `-- name: UpdateUserInfo :exec
+func (q *Queries) UpdateUserImage(ctx context.Context, arg UpdateUserImageParams) (UpdateUserImageRow, error) {
+	row := q.db.QueryRowContext(ctx, updateUserImage, arg.ID, arg.Image)
+	var i UpdateUserImageRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Image,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateUserInfo = `-- name: UpdateUserInfo :one
 UPDATE "Users"
 SET (name, email, image, status, hashed_pw) = ($2, $3, $4, $5, $6)
 where id = $1
-returning $1,
-  $2,
-  $3,
-  $4,
-  $5
+RETURNING id,
+  name,
+  email,
+  image,
+  status,
+  created_at
 `
 
 type UpdateUserInfoParams struct {
@@ -190,15 +225,16 @@ type UpdateUserInfoParams struct {
 }
 
 type UpdateUserInfoRow struct {
-	Column1 interface{} `json:"column1"`
-	Column2 interface{} `json:"column2"`
-	Column3 interface{} `json:"column3"`
-	Column4 interface{} `json:"column4"`
-	Column5 interface{} `json:"column5"`
+	ID        int64          `json:"id"`
+	Name      string         `json:"name"`
+	Email     string         `json:"email"`
+	Image     sql.NullString `json:"image"`
+	Status    sql.NullString `json:"status"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
-func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserInfo,
+func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) (UpdateUserInfoRow, error) {
+	row := q.db.QueryRowContext(ctx, updateUserInfo,
 		arg.ID,
 		arg.Name,
 		arg.Email,
@@ -206,5 +242,14 @@ func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) 
 		arg.Status,
 		arg.HashedPw,
 	)
-	return err
+	var i UpdateUserInfoRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Image,
+		&i.Status,
+		&i.CreatedAt,
+	)
+	return i, err
 }

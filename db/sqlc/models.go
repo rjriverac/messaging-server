@@ -6,6 +6,7 @@ package db
 
 import (
 	"database/sql"
+	"time"
 )
 
 type Conversation struct {
@@ -29,7 +30,7 @@ type User struct {
 	HashedPw  string         `json:"hashedPw"`
 	Image     sql.NullString `json:"image"`
 	Status    sql.NullString `json:"status"`
-	CreatedAt sql.NullTime   `json:"createdAt"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
 type UserConversation struct {
