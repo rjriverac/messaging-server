@@ -17,7 +17,7 @@ RETURNING id, unread, last, messages
 `
 
 type CreateConversationParams struct {
-	Unread   sql.NullInt32 `json:"unread"`
+	Unread   int32         `json:"unread"`
 	Last     sql.NullInt64 `json:"last"`
 	Messages sql.NullInt64 `json:"messages"`
 }
@@ -103,7 +103,7 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 	return items, nil
 }
 
-const updateConversation = `-- name: UpdateConversation :exec
+const updateConversation = `-- name: UpdateConversation :one
 UPDATE "Conversation"
 SET (Unread, Last, Messages) = ($2, $3, $4)
 WHERE ID = $1
@@ -112,17 +112,24 @@ returning id, unread, last, messages
 
 type UpdateConversationParams struct {
 	ID       int64         `json:"id"`
-	Unread   sql.NullInt32 `json:"unread"`
+	Unread   int32         `json:"unread"`
 	Last     sql.NullInt64 `json:"last"`
 	Messages sql.NullInt64 `json:"messages"`
 }
 
-func (q *Queries) UpdateConversation(ctx context.Context, arg UpdateConversationParams) error {
-	_, err := q.db.ExecContext(ctx, updateConversation,
+func (q *Queries) UpdateConversation(ctx context.Context, arg UpdateConversationParams) (Conversation, error) {
+	row := q.db.QueryRowContext(ctx, updateConversation,
 		arg.ID,
 		arg.Unread,
 		arg.Last,
 		arg.Messages,
 	)
-	return err
+	var i Conversation
+	err := row.Scan(
+		&i.ID,
+		&i.Unread,
+		&i.Last,
+		&i.Messages,
+	)
+	return i, err
 }

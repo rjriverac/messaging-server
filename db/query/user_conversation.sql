@@ -6,10 +6,16 @@ RETURNING *;
 SELECT *
 from "user_conversation"
 WHERE user_id = $1 and conv_id = $2;
--- name: ListUser_conversation :many
+-- name: ListUser_conversationByUser :many
 SELECT *
 from "user_conversation"
+WHERE user_id = $1
 ORDER BY user_id;
+-- name: ListUser_conversationByConv :many
+SELECT *
+from "user_conversation"
+WHERE conv_id = $1
+ORDER BY conv_id;
 -- name: DeleteUser_conversation :exec
 DELETE FROM "user_conversation"
 WHERE user_id = $1 and conv_id = $2;

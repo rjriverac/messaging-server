@@ -12,7 +12,7 @@ SELECT *
 FROM "Conversation"
 ORDER BY id
 LIMIT $1 OFFSET $2;
--- name: UpdateConversation :exec
+-- name: UpdateConversation :one
 UPDATE "Conversation"
 SET (Unread, Last, Messages) = ($2, $3, $4)
 WHERE ID = $1

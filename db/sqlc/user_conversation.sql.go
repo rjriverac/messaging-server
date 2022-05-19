@@ -60,14 +60,45 @@ func (q *Queries) GetUser_conversation(ctx context.Context, arg GetUser_conversa
 	return i, err
 }
 
-const listUser_conversation = `-- name: ListUser_conversation :many
+const listUser_conversationByConv = `-- name: ListUser_conversationByConv :many
 SELECT user_id, conv_id
 from "user_conversation"
+WHERE conv_id = $1
+ORDER BY conv_id
+`
+
+func (q *Queries) ListUser_conversationByConv(ctx context.Context, convID int64) ([]UserConversation, error) {
+	rows, err := q.db.QueryContext(ctx, listUser_conversationByConv, convID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserConversation
+	for rows.Next() {
+		var i UserConversation
+		if err := rows.Scan(&i.UserID, &i.ConvID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUser_conversationByUser = `-- name: ListUser_conversationByUser :many
+SELECT user_id, conv_id
+from "user_conversation"
+WHERE user_id = $1
 ORDER BY user_id
 `
 
-func (q *Queries) ListUser_conversation(ctx context.Context) ([]UserConversation, error) {
-	rows, err := q.db.QueryContext(ctx, listUser_conversation)
+func (q *Queries) ListUser_conversationByUser(ctx context.Context, userID int64) ([]UserConversation, error) {
+	rows, err := q.db.QueryContext(ctx, listUser_conversationByUser, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 
 type Conversation struct {
 	ID       int64         `json:"id"`
-	Unread   sql.NullInt32 `json:"unread"`
+	Unread   int32         `json:"unread"`
 	Last     sql.NullInt64 `json:"last"`
 	Messages sql.NullInt64 `json:"messages"`
 }
@@ -20,7 +20,7 @@ type Message struct {
 	ID        int64          `json:"id"`
 	UserID    int64          `json:"userID"`
 	Content   sql.NullString `json:"content"`
-	CreatedAt sql.NullTime   `json:"createdAt"`
+	CreatedAt time.Time      `json:"createdAt"`
 }
 
 type User struct {
