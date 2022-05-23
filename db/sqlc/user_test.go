@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 	"time"
 
@@ -50,26 +51,45 @@ func TestGetUser(t *testing.T) {
 	require.Equal(t, user.ID, user2.ID)
 	require.WithinDuration(t, user.CreatedAt, user2.CreatedAt, time.Second)
 }
+
 //! fix PW being passed in as empty string in update func
 func TestUpdateUser(t *testing.T) {
 	user := createRandomUser(t)
 
 	arg := UpdateUserInfoParams{
-		ID:     user.ID,
-		Name:   user.Name,
-		Status: util.NullStrGen(10),
-		Email:  util.RandomEmail(),
-		HashedPw: util.RandomHashedPW(),
+		ID:       user.ID,
+		Name:     util.NullStrGen(5),
+		Email:    sql.NullString{String: util.RandomEmail(), Valid: true},
+		Image:    util.NullStrGen(15),
+		Status:   util.NullStrGen(15),
+		HashedPw: sql.NullString{String: "", Valid: false},
 	}
 
 	user2, err := testQueries.UpdateUserInfo(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, user2)
-	require.Equal(t, user.Name, user2.Name)
-	require.WithinDuration(t, user.CreatedAt, user2.CreatedAt, time.Second)
-	require.Equal(t, arg.Email, user2.Email)
-	require.Equal(t, user.ID, user2.ID)
-	require.Equal(t, arg.Status, user2.Status)
+	require.Equal(t, arg.ID, user2.ID)
+	require.Equal(t, arg.Email.String, user2.Email)
+	require.Equal(t, arg.Image.String, user2.Image.String)
+	require.Equal(t, arg.Name.String, user2.Name)
+	require.Equal(t, arg.Status.String, user2.Status.String)
+
+	partialarg := UpdateUserInfoParams{
+		ID:     user.ID,
+		Status: util.NullStrGen(5),
+	}
+
+	user3, err := testQueries.UpdateUserInfo(context.Background(), partialarg)
+	fmt.Printf("user3: %v status: %v",user3,partialarg.Status)
+	require.NoError(t, err)
+	require.NotEmpty(t, user3)
+	require.Equal(t, arg.ID, user3.ID)
+	require.Equal(t, arg.Email.String, user3.Email)
+	require.Equal(t, arg.Image.String, user3.Image.String)
+	require.Equal(t, arg.Name.String, user3.Name)
+	require.Equal(t, arg.Status.String, user3.Status.String)
+	require.Len(t, user3.Status.String, 5)
+
 }
 
 func TestDeleteUser(t *testing.T) {
