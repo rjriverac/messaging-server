@@ -10,10 +10,10 @@ import (
 )
 
 type Conversation struct {
-	ID       int64         `json:"id"`
-	Unread   int32         `json:"unread"`
-	Last     sql.NullInt64 `json:"last"`
-	Messages sql.NullInt64 `json:"messages"`
+	ID       int64 `json:"id"`
+	Unread   int32 `json:"unread"`
+	Last     int64 `json:"last"`
+	Messages int64 `json:"messages"`
 }
 
 type Message struct {
@@ -34,6 +34,7 @@ type User struct {
 }
 
 type UserConversation struct {
+	ID     int64 `json:"id"`
 	UserID int64 `json:"userID"`
 	ConvID int64 `json:"convID"`
 }

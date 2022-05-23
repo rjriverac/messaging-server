@@ -36,7 +36,10 @@ func TestGetUserConv(t *testing.T) {
 	conv1 := createRandConv(t, user1.ID, user2.ID)
 	uconv := createRndUsrConv(t, user1.ID, conv1.ID)
 
-	arg := GetUser_conversationParams(uconv)
+	arg := GetUser_conversationParams{
+		uconv.ConvID,
+		uconv.UserID,
+	}
 
 	conv, err := testQueries.GetUser_conversation(context.Background(), arg)
 	require.NoError(t, err)
@@ -64,35 +67,3 @@ func TestListUserConvsByUser(t *testing.T) {
 	}
 }
 
-func TestListUserConvsByConv(t *testing.T) {
-
-	//todo refactor to add own create conversation/messages
-
-	user1 := createRandomUser(t)
-	user2 := createRandomUser(t)
-	conv := createRandConv(t, user1.ID, user2.ID)
-
-	additional := make([]int64, 5)
-	for i := 0; i < 5; i++ {
-		new := createRandomUser(t).ID
-		additional = append(additional, new)
-	}
-	for _, user := range additional {
-		createRndUsrConv(t, user, conv.ID)
-	}
-
-	list, err := testQueries.ListUser_conversationByConv(context.Background(), conv.ID)
-	require.NoError(t, err)
-	require.NotEmpty(t, list)
-	// ind := rand.Intn(len(uIds))
-	// resized := uIds
-	// resized[ind] = resized[len(resized)-1]
-	// resized[len(resized)-1]=int64(0)
-	// resized = resized[:len(resized)-1]
-	// secInd := rand.Intn(len(resized))
-
-	// conv := createRandConv(t, uIds[ind],resized[secInd])
-	// for _, user := range uIds {
-	// 	createRndUsrConv(t, user, conv.ID)
-	// }
-}

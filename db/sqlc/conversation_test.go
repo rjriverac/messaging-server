@@ -16,8 +16,8 @@ func createRandConv(t *testing.T, uID1, uID2 int64) Conversation {
 
 	arg := CreateConversationParams{
 		Unread:   int32(util.RandomInt(1, 30)),
-		Messages: sql.NullInt64{msg1.ID, true},
-		Last:     sql.NullInt64{msg2.ID, true},
+		Messages: msg1.ID,
+		Last:     msg2.ID,
 	}
 
 	conv, err := testQueries.CreateConversation(context.Background(), arg)
@@ -82,9 +82,9 @@ func TestUpdateConv(t *testing.T) {
 	}
 	arg := UpdateConversationParams{
 		ID:       conv1.ID,
-		Last:     sql.NullInt64{newMsgs[0].ID, true},
+		Last:     newMsgs[0].ID,
 		Unread:   int32(conv1.ID + 1),
-		Messages: sql.NullInt64{newMsgs[1].ID, true},
+		Messages: newMsgs[1].ID,
 	}
 	conv2,err := testQueries.UpdateConversation(context.Background(), arg)
 	require.NoError(t, err)

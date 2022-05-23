@@ -5,17 +5,18 @@ RETURNING *;
 -- name: GetUser_conversation :one
 SELECT *
 from "user_conversation"
-WHERE user_id = $1 and conv_id = $2;
+WHERE user_id = $1
+  and conv_id = $2;
 -- name: ListUser_conversationByUser :many
 SELECT *
 from "user_conversation"
 WHERE user_id = $1
 ORDER BY user_id;
--- name: ListUser_conversationByConv :many
+-- name: ListUser_conversations :many
 SELECT *
 from "user_conversation"
-WHERE conv_id = $1
-ORDER BY conv_id;
+ORDER BY id;
 -- name: DeleteUser_conversation :exec
 DELETE FROM "user_conversation"
-WHERE user_id = $1 and conv_id = $2;
+WHERE user_id = $1
+  and conv_id = $2;

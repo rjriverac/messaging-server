@@ -12,7 +12,7 @@ import (
 const createUser_conversation = `-- name: CreateUser_conversation :one
 INSERT INTO "user_conversation" (user_id, conv_id)
 VALUES($1, $2)
-RETURNING user_id, conv_id
+RETURNING id, user_id, conv_id
 `
 
 type CreateUser_conversationParams struct {
@@ -23,13 +23,14 @@ type CreateUser_conversationParams struct {
 func (q *Queries) CreateUser_conversation(ctx context.Context, arg CreateUser_conversationParams) (UserConversation, error) {
 	row := q.db.QueryRowContext(ctx, createUser_conversation, arg.UserID, arg.ConvID)
 	var i UserConversation
-	err := row.Scan(&i.UserID, &i.ConvID)
+	err := row.Scan(&i.ID, &i.UserID, &i.ConvID)
 	return i, err
 }
 
 const deleteUser_conversation = `-- name: DeleteUser_conversation :exec
 DELETE FROM "user_conversation"
-WHERE user_id = $1 and conv_id = $2
+WHERE user_id = $1
+  and conv_id = $2
 `
 
 type DeleteUser_conversationParams struct {
@@ -43,9 +44,10 @@ func (q *Queries) DeleteUser_conversation(ctx context.Context, arg DeleteUser_co
 }
 
 const getUser_conversation = `-- name: GetUser_conversation :one
-SELECT user_id, conv_id
+SELECT id, user_id, conv_id
 from "user_conversation"
-WHERE user_id = $1 and conv_id = $2
+WHERE user_id = $1
+  and conv_id = $2
 `
 
 type GetUser_conversationParams struct {
@@ -56,42 +58,12 @@ type GetUser_conversationParams struct {
 func (q *Queries) GetUser_conversation(ctx context.Context, arg GetUser_conversationParams) (UserConversation, error) {
 	row := q.db.QueryRowContext(ctx, getUser_conversation, arg.UserID, arg.ConvID)
 	var i UserConversation
-	err := row.Scan(&i.UserID, &i.ConvID)
+	err := row.Scan(&i.ID, &i.UserID, &i.ConvID)
 	return i, err
 }
 
-const listUser_conversationByConv = `-- name: ListUser_conversationByConv :many
-SELECT user_id, conv_id
-from "user_conversation"
-WHERE conv_id = $1
-ORDER BY conv_id
-`
-
-func (q *Queries) ListUser_conversationByConv(ctx context.Context, convID int64) ([]UserConversation, error) {
-	rows, err := q.db.QueryContext(ctx, listUser_conversationByConv, convID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []UserConversation
-	for rows.Next() {
-		var i UserConversation
-		if err := rows.Scan(&i.UserID, &i.ConvID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listUser_conversationByUser = `-- name: ListUser_conversationByUser :many
-SELECT user_id, conv_id
+SELECT id, user_id, conv_id
 from "user_conversation"
 WHERE user_id = $1
 ORDER BY user_id
@@ -106,7 +78,36 @@ func (q *Queries) ListUser_conversationByUser(ctx context.Context, userID int64)
 	var items []UserConversation
 	for rows.Next() {
 		var i UserConversation
-		if err := rows.Scan(&i.UserID, &i.ConvID); err != nil {
+		if err := rows.Scan(&i.ID, &i.UserID, &i.ConvID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUser_conversations = `-- name: ListUser_conversations :many
+SELECT id, user_id, conv_id
+from "user_conversation"
+ORDER BY id
+`
+
+func (q *Queries) ListUser_conversations(ctx context.Context) ([]UserConversation, error) {
+	rows, err := q.db.QueryContext(ctx, listUser_conversations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []UserConversation
+	for rows.Next() {
+		var i UserConversation
+		if err := rows.Scan(&i.ID, &i.UserID, &i.ConvID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

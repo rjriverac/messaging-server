@@ -23,9 +23,9 @@ CREATE TABLE "Conversation" (
 );
 
 CREATE TABLE "user_conversation" (
-  "user_id" bigint,
-  "conv_id" bigint,
-  PRIMARY KEY ("user_id", "conv_id")
+  "id" bigserial unique primary key,
+  "user_id" bigint not null,
+  "conv_id" bigint not null
 );
 
 ALTER TABLE "Message" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
@@ -33,6 +33,10 @@ ALTER TABLE "Message" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
 ALTER TABLE "user_conversation" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
 
 ALTER TABLE "user_conversation" ADD FOREIGN KEY ("conv_id") REFERENCES "Conversation" ("id");
+
+CREATE UNIQUE INDEX idx_user_conv_const ON "user_conversation" ("user_id","conv_id");
+
+ALTER TABLE "user_conversation" ADD CONSTRAINT idx_user_conv UNIQUE ("user_id","conv_id");
 
 ALTER TABLE "Conversation" ADD FOREIGN KEY ("last") REFERENCES "Message" ("id");
 

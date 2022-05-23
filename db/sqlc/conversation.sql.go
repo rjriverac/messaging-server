@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createConversation = `-- name: CreateConversation :one
@@ -17,9 +16,9 @@ RETURNING id, unread, last, messages
 `
 
 type CreateConversationParams struct {
-	Unread   int32         `json:"unread"`
-	Last     sql.NullInt64 `json:"last"`
-	Messages sql.NullInt64 `json:"messages"`
+	Unread   int32 `json:"unread"`
+	Last     int64 `json:"last"`
+	Messages int64 `json:"messages"`
 }
 
 func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversationParams) (Conversation, error) {
@@ -111,10 +110,10 @@ returning id, unread, last, messages
 `
 
 type UpdateConversationParams struct {
-	ID       int64         `json:"id"`
-	Unread   int32         `json:"unread"`
-	Last     sql.NullInt64 `json:"last"`
-	Messages sql.NullInt64 `json:"messages"`
+	ID       int64 `json:"id"`
+	Unread   int32 `json:"unread"`
+	Last     int64 `json:"last"`
+	Messages int64 `json:"messages"`
 }
 
 func (q *Queries) UpdateConversation(ctx context.Context, arg UpdateConversationParams) (Conversation, error) {
