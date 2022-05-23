@@ -7,29 +7,19 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createConversation = `-- name: CreateConversation :one
-INSERT INTO "Conversation" (Unread, Last, Messages)
-VALUES ($1, $2, $3)
-RETURNING id, unread, last, messages
+INSERT INTO "Conversation" (name)
+VALUES($1)
+RETURNING id, name
 `
 
-type CreateConversationParams struct {
-	Unread   int32 `json:"unread"`
-	Last     int64 `json:"last"`
-	Messages int64 `json:"messages"`
-}
-
-func (q *Queries) CreateConversation(ctx context.Context, arg CreateConversationParams) (Conversation, error) {
-	row := q.db.QueryRowContext(ctx, createConversation, arg.Unread, arg.Last, arg.Messages)
+func (q *Queries) CreateConversation(ctx context.Context, name sql.NullString) (Conversation, error) {
+	row := q.db.QueryRowContext(ctx, createConversation, name)
 	var i Conversation
-	err := row.Scan(
-		&i.ID,
-		&i.Unread,
-		&i.Last,
-		&i.Messages,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
@@ -44,7 +34,7 @@ func (q *Queries) DeleteConversation(ctx context.Context, id int64) error {
 }
 
 const getConversation = `-- name: GetConversation :one
-SELECT id, unread, last, messages
+SELECT id, name
 FROM "Conversation"
 WHERE id = $1
 LIMIT 1
@@ -53,17 +43,12 @@ LIMIT 1
 func (q *Queries) GetConversation(ctx context.Context, id int64) (Conversation, error) {
 	row := q.db.QueryRowContext(ctx, getConversation, id)
 	var i Conversation
-	err := row.Scan(
-		&i.ID,
-		&i.Unread,
-		&i.Last,
-		&i.Messages,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }
 
 const listConversations = `-- name: ListConversations :many
-SELECT id, unread, last, messages
+SELECT id, name
 FROM "Conversation"
 ORDER BY id
 LIMIT $1 OFFSET $2
@@ -83,12 +68,7 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 	var items []Conversation
 	for rows.Next() {
 		var i Conversation
-		if err := rows.Scan(
-			&i.ID,
-			&i.Unread,
-			&i.Last,
-			&i.Messages,
-		); err != nil {
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -104,31 +84,19 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 
 const updateConversation = `-- name: UpdateConversation :one
 UPDATE "Conversation"
-SET (Unread, Last, Messages) = ($2, $3, $4)
+SET name = $2
 WHERE ID = $1
-returning id, unread, last, messages
+returning id, name
 `
 
 type UpdateConversationParams struct {
-	ID       int64 `json:"id"`
-	Unread   int32 `json:"unread"`
-	Last     int64 `json:"last"`
-	Messages int64 `json:"messages"`
+	ID   int64          `json:"id"`
+	Name sql.NullString `json:"name"`
 }
 
 func (q *Queries) UpdateConversation(ctx context.Context, arg UpdateConversationParams) (Conversation, error) {
-	row := q.db.QueryRowContext(ctx, updateConversation,
-		arg.ID,
-		arg.Unread,
-		arg.Last,
-		arg.Messages,
-	)
+	row := q.db.QueryRowContext(ctx, updateConversation, arg.ID, arg.Name)
 	var i Conversation
-	err := row.Scan(
-		&i.ID,
-		&i.Unread,
-		&i.Last,
-		&i.Messages,
-	)
+	err := row.Scan(&i.ID, &i.Name)
 	return i, err
 }

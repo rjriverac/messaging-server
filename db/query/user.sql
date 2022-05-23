@@ -32,20 +32,15 @@ SELECT id,
 FROM "Users"
 ORDER BY id
 LIMIT $1 OFFSET $2;
--- name: UpdateUserImage :one
-UPDATE "Users"
-SET image = $2
-WHERE id = $1
-RETURNING id,
-  name,
-  email,
-  image,
-  status,
-  created_at;
 -- name: UpdateUserInfo :one
 UPDATE "Users"
-SET (name, email, image, status, hashed_pw) = ($2, $3, $4, $5, $6)
-where id = $1
+SET 
+    name = coalesce(sqlc.narg('name'), name),
+    email = coalesce(sqlc.narg('email'), email),
+    image = coalesce(sqlc.narg('image'), image),
+    status = coalesce(sqlc.narg('status'), status),
+    hashed_pw = coalesce(sqlc.narg('hashed_pw'), hashed_pw)
+where id = sqlc.arg('id')
 RETURNING id,
   name,
   email,

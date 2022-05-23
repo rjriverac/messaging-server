@@ -1,3 +1,0 @@
-ALTER TABLE "Message" ALTER COLUMN created_at SET NOT NULL;
-
-

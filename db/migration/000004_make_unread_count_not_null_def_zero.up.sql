@@ -1,2 +1,0 @@
-ALTER TABLE "Conversation" ALTER COLUMN unread SET NOT NULL;
-ALTER TABLE "Conversation" ALTER COLUMN unread SET DEFAULT 0;

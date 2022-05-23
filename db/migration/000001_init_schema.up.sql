@@ -5,39 +5,32 @@ CREATE TABLE "Users" (
   "hashed_pw" varchar NOT NULL,
   "image" varchar,
   "status" varchar,
-  "created_at" timestamptz DEFAULT (now())
+  "created_at" timestamptz NOT NULL DEFAULT (now())
 );
 
 CREATE TABLE "Message" (
   "id" bigserial UNIQUE PRIMARY KEY,
-  "user_id" bigint NOT NULL,
-  "content" varchar,
-  "created_at" timestamptz DEFAULT (now())
+  "from" varchar NOT NULL,
+  "content" varchar NOT NULL,
+  "created_at" timestamptz DEFAULT (now()),
+  "conv_id" bigint
 );
 
 CREATE TABLE "Conversation" (
   "id" bigserial UNIQUE PRIMARY KEY,
-  "unread" int DEFAULT 0,
-  "last" bigint,
-  "messages" bigint
+  "name" varchar
 );
 
 CREATE TABLE "user_conversation" (
-  "id" bigserial unique primary key,
-  "user_id" bigint not null,
-  "conv_id" bigint not null
+  "id" bigserial PRIMARY KEY,
+  "user_id" bigint,
+  "conv_id" bigint
 );
 
-ALTER TABLE "Message" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
+CREATE INDEX ON "user_conversation" ("user_id", "conv_id");
+
+ALTER TABLE "Message" ADD FOREIGN KEY ("conv_id") REFERENCES "Conversation" ("id");
 
 ALTER TABLE "user_conversation" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
 
 ALTER TABLE "user_conversation" ADD FOREIGN KEY ("conv_id") REFERENCES "Conversation" ("id");
-
-CREATE UNIQUE INDEX idx_user_conv_const ON "user_conversation" ("user_id","conv_id");
-
-ALTER TABLE "user_conversation" ADD CONSTRAINT idx_user_conv UNIQUE ("user_id","conv_id");
-
-ALTER TABLE "Conversation" ADD FOREIGN KEY ("last") REFERENCES "Message" ("id");
-
-ALTER TABLE "Conversation" ADD FOREIGN KEY ("messages") REFERENCES "Message" ("id");

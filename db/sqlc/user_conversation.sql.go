@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser_conversation = `-- name: CreateUser_conversation :one
@@ -16,8 +17,8 @@ RETURNING id, user_id, conv_id
 `
 
 type CreateUser_conversationParams struct {
-	UserID int64 `json:"userID"`
-	ConvID int64 `json:"convID"`
+	UserID sql.NullInt64 `json:"userID"`
+	ConvID sql.NullInt64 `json:"convID"`
 }
 
 func (q *Queries) CreateUser_conversation(ctx context.Context, arg CreateUser_conversationParams) (UserConversation, error) {
@@ -34,8 +35,8 @@ WHERE user_id = $1
 `
 
 type DeleteUser_conversationParams struct {
-	UserID int64 `json:"userID"`
-	ConvID int64 `json:"convID"`
+	UserID sql.NullInt64 `json:"userID"`
+	ConvID sql.NullInt64 `json:"convID"`
 }
 
 func (q *Queries) DeleteUser_conversation(ctx context.Context, arg DeleteUser_conversationParams) error {
@@ -51,8 +52,8 @@ WHERE user_id = $1
 `
 
 type GetUser_conversationParams struct {
-	UserID int64 `json:"userID"`
-	ConvID int64 `json:"convID"`
+	UserID sql.NullInt64 `json:"userID"`
+	ConvID sql.NullInt64 `json:"convID"`
 }
 
 func (q *Queries) GetUser_conversation(ctx context.Context, arg GetUser_conversationParams) (UserConversation, error) {
@@ -69,7 +70,7 @@ WHERE user_id = $1
 ORDER BY user_id
 `
 
-func (q *Queries) ListUser_conversationByUser(ctx context.Context, userID int64) ([]UserConversation, error) {
+func (q *Queries) ListUser_conversationByUser(ctx context.Context, userID sql.NullInt64) ([]UserConversation, error) {
 	rows, err := q.db.QueryContext(ctx, listUser_conversationByUser, userID)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,6 @@
 -- name: CreateMessage :one
-INSERT INTO "Message" ("user_id", "content")
-VALUES($1, $2)
+INSERT INTO "Message" ("from", content, conv_id)
+VALUES($1, $2, $3)
 RETURNING *;
 -- name: GetMessage :one
 SELECT *
@@ -9,7 +9,7 @@ WHERE id = $1;
 -- name: ListMessageByUser :many
 SELECT *
 from "Message"
-WHERE "user_id" = $1
+WHERE "from" = $1
 ORDER BY created_at;
 -- name: DeleteMessage :exec
 DELETE FROM "Message"

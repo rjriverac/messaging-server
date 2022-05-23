@@ -1,6 +1,6 @@
 -- name: CreateConversation :one
-INSERT INTO "Conversation" (Unread, Last, Messages)
-VALUES ($1, $2, $3)
+INSERT INTO "Conversation" (name)
+VALUES($1)
 RETURNING *;
 -- name: GetConversation :one
 SELECT *
@@ -14,7 +14,7 @@ ORDER BY id
 LIMIT $1 OFFSET $2;
 -- name: UpdateConversation :one
 UPDATE "Conversation"
-SET (Unread, Last, Messages) = ($2, $3, $4)
+SET name = $2
 WHERE ID = $1
 returning *;
 -- name: DeleteConversation :exec

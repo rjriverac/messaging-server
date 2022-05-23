@@ -163,50 +163,15 @@ func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUse
 	return items, nil
 }
 
-const updateUserImage = `-- name: UpdateUserImage :one
-UPDATE "Users"
-SET image = $2
-WHERE id = $1
-RETURNING id,
-  name,
-  email,
-  image,
-  status,
-  created_at
-`
-
-type UpdateUserImageParams struct {
-	ID    int64          `json:"id"`
-	Image sql.NullString `json:"image"`
-}
-
-type UpdateUserImageRow struct {
-	ID        int64          `json:"id"`
-	Name      string         `json:"name"`
-	Email     string         `json:"email"`
-	Image     sql.NullString `json:"image"`
-	Status    sql.NullString `json:"status"`
-	CreatedAt time.Time      `json:"createdAt"`
-}
-
-func (q *Queries) UpdateUserImage(ctx context.Context, arg UpdateUserImageParams) (UpdateUserImageRow, error) {
-	row := q.db.QueryRowContext(ctx, updateUserImage, arg.ID, arg.Image)
-	var i UpdateUserImageRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Image,
-		&i.Status,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const updateUserInfo = `-- name: UpdateUserInfo :one
 UPDATE "Users"
-SET (name, email, image, status, hashed_pw) = ($2, $3, $4, $5, $6)
-where id = $1
+SET 
+    name = coalesce($1, name),
+    email = coalesce($2, email),
+    image = coalesce($3, image),
+    status = coalesce($4, status),
+    hashed_pw = coalesce($5, hashed_pw)
+where id = $6
 RETURNING id,
   name,
   email,
@@ -216,12 +181,12 @@ RETURNING id,
 `
 
 type UpdateUserInfoParams struct {
-	ID       int64          `json:"id"`
-	Name     string         `json:"name"`
-	Email    string         `json:"email"`
+	Name     sql.NullString `json:"name"`
+	Email    sql.NullString `json:"email"`
 	Image    sql.NullString `json:"image"`
 	Status   sql.NullString `json:"status"`
-	HashedPw string         `json:"hashedPw"`
+	HashedPw sql.NullString `json:"hashedPw"`
+	ID       int64          `json:"id"`
 }
 
 type UpdateUserInfoRow struct {
@@ -235,12 +200,12 @@ type UpdateUserInfoRow struct {
 
 func (q *Queries) UpdateUserInfo(ctx context.Context, arg UpdateUserInfoParams) (UpdateUserInfoRow, error) {
 	row := q.db.QueryRowContext(ctx, updateUserInfo,
-		arg.ID,
 		arg.Name,
 		arg.Email,
 		arg.Image,
 		arg.Status,
 		arg.HashedPw,
+		arg.ID,
 	)
 	var i UpdateUserInfoRow
 	err := row.Scan(

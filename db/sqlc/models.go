@@ -10,17 +10,16 @@ import (
 )
 
 type Conversation struct {
-	ID       int64 `json:"id"`
-	Unread   int32 `json:"unread"`
-	Last     int64 `json:"last"`
-	Messages int64 `json:"messages"`
+	ID   int64          `json:"id"`
+	Name sql.NullString `json:"name"`
 }
 
 type Message struct {
-	ID        int64          `json:"id"`
-	UserID    int64          `json:"userID"`
-	Content   sql.NullString `json:"content"`
-	CreatedAt time.Time      `json:"createdAt"`
+	ID        int64         `json:"id"`
+	From      string        `json:"from"`
+	Content   string        `json:"content"`
+	CreatedAt sql.NullTime  `json:"createdAt"`
+	ConvID    sql.NullInt64 `json:"convID"`
 }
 
 type User struct {
@@ -34,7 +33,7 @@ type User struct {
 }
 
 type UserConversation struct {
-	ID     int64 `json:"id"`
-	UserID int64 `json:"userID"`
-	ConvID int64 `json:"convID"`
+	ID     int64         `json:"id"`
+	UserID sql.NullInt64 `json:"userID"`
+	ConvID sql.NullInt64 `json:"convID"`
 }

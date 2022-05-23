@@ -11,24 +11,26 @@ import (
 )
 
 const createMessage = `-- name: CreateMessage :one
-INSERT INTO "Message" ("user_id", "content")
-VALUES($1, $2)
-RETURNING id, user_id, content, created_at
+INSERT INTO "Message" ("from", content, conv_id)
+VALUES($1, $2, $3)
+RETURNING id, "from", content, created_at, conv_id
 `
 
 type CreateMessageParams struct {
-	UserID  int64          `json:"userID"`
-	Content sql.NullString `json:"content"`
+	From    string        `json:"from"`
+	Content string        `json:"content"`
+	ConvID  sql.NullInt64 `json:"convID"`
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
-	row := q.db.QueryRowContext(ctx, createMessage, arg.UserID, arg.Content)
+	row := q.db.QueryRowContext(ctx, createMessage, arg.From, arg.Content, arg.ConvID)
 	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
+		&i.From,
 		&i.Content,
 		&i.CreatedAt,
+		&i.ConvID,
 	)
 	return i, err
 }
@@ -44,7 +46,7 @@ func (q *Queries) DeleteMessage(ctx context.Context, id int64) error {
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT id, user_id, content, created_at
+SELECT id, "from", content, created_at, conv_id
 from "Message"
 WHERE id = $1
 `
@@ -54,22 +56,23 @@ func (q *Queries) GetMessage(ctx context.Context, id int64) (Message, error) {
 	var i Message
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
+		&i.From,
 		&i.Content,
 		&i.CreatedAt,
+		&i.ConvID,
 	)
 	return i, err
 }
 
 const listMessageByUser = `-- name: ListMessageByUser :many
-SELECT id, user_id, content, created_at
+SELECT id, "from", content, created_at, conv_id
 from "Message"
-WHERE "user_id" = $1
+WHERE "from" = $1
 ORDER BY created_at
 `
 
-func (q *Queries) ListMessageByUser(ctx context.Context, userID int64) ([]Message, error) {
-	rows, err := q.db.QueryContext(ctx, listMessageByUser, userID)
+func (q *Queries) ListMessageByUser(ctx context.Context, from string) ([]Message, error) {
+	rows, err := q.db.QueryContext(ctx, listMessageByUser, from)
 	if err != nil {
 		return nil, err
 	}
@@ -79,9 +82,10 @@ func (q *Queries) ListMessageByUser(ctx context.Context, userID int64) ([]Messag
 		var i Message
 		if err := rows.Scan(
 			&i.ID,
-			&i.UserID,
+			&i.From,
 			&i.Content,
 			&i.CreatedAt,
+			&i.ConvID,
 		); err != nil {
 			return nil, err
 		}
