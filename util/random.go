@@ -74,7 +74,7 @@ func RandomHashedPW() string {
 
 func NullStrGen(n int) sql.NullString {
 	var str sql.NullString
-	str.String = RandomString(10)
+	str.String = RandomString(n)
 	str.Valid = true
 	return str
 }

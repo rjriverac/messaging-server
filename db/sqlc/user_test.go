@@ -87,7 +87,7 @@ func TestUpdateUser(t *testing.T) {
 	require.Equal(t, arg.Email.String, user3.Email)
 	require.Equal(t, arg.Image.String, user3.Image.String)
 	require.Equal(t, arg.Name.String, user3.Name)
-	require.Equal(t, arg.Status.String, user3.Status.String)
+	require.Equal(t, partialarg.Status.String, user3.Status.String)
 	require.Len(t, user3.Status.String, 5)
 
 }
