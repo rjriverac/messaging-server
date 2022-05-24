@@ -15,11 +15,11 @@ type Conversation struct {
 }
 
 type Message struct {
-	ID        int64         `json:"id"`
-	From      string        `json:"from"`
-	Content   string        `json:"content"`
-	CreatedAt time.Time     `json:"createdAt"`
-	ConvID    sql.NullInt64 `json:"convID"`
+	ID        int64     `json:"id"`
+	From      string    `json:"from"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"createdAt"`
+	ConvID    int64     `json:"convID"`
 }
 
 type User struct {

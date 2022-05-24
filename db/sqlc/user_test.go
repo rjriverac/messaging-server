@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
@@ -80,7 +79,6 @@ func TestUpdateUser(t *testing.T) {
 	}
 
 	user3, err := testQueries.UpdateUserInfo(context.Background(), partialarg)
-	fmt.Printf("user3: %v status: %v",user3,partialarg.Status)
 	require.NoError(t, err)
 	require.NotEmpty(t, user3)
 	require.Equal(t, arg.ID, user3.ID)

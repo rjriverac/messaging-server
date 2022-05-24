@@ -13,7 +13,7 @@ CREATE TABLE "Message" (
   "from" varchar NOT NULL,
   "content" varchar NOT NULL,
   "created_at" timestamptz not null DEFAULT (now()),
-  "conv_id" bigint
+  "conv_id" bigint not null
 );
 
 CREATE TABLE "Conversation" (
