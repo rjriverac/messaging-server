@@ -12,7 +12,7 @@ CREATE TABLE "Message" (
   "id" bigserial UNIQUE PRIMARY KEY,
   "from" varchar NOT NULL,
   "content" varchar NOT NULL,
-  "created_at" timestamptz DEFAULT (now()),
+  "created_at" timestamptz not null DEFAULT (now()),
   "conv_id" bigint
 );
 
@@ -23,8 +23,8 @@ CREATE TABLE "Conversation" (
 
 CREATE TABLE "user_conversation" (
   "id" bigserial PRIMARY KEY,
-  "user_id" bigint,
-  "conv_id" bigint
+  "user_id" bigint not null,
+  "conv_id" bigint not null
 );
 
 CREATE INDEX ON "user_conversation" ("user_id", "conv_id");

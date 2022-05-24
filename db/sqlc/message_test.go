@@ -1,79 +1,91 @@
 package db
 
-// import (
-// 	"context"
-// 	"database/sql"
-// 	"testing"
-// 	"time"
+import (
+	"context"
+	"database/sql"
+	"testing"
+	"time"
 
-// 	"github.com/rjriverac/messaging-server/util"
-// 	"github.com/stretchr/testify/require"
-// )
+	"github.com/rjriverac/messaging-server/util"
+	"github.com/stretchr/testify/require"
+)
 
-// func createRandMessage(t *testing.T, uid int64) Message {
+func createRandMessage(t *testing.T) Message {
 
-// 	arg := CreateMessageParams{
-// 		UserID:  uid,
-// 		Content: util.NullStrGen(80),
-// 	}
-// 	message, err := testQueries.CreateMessage(context.Background(), arg)
-// 	require.NoError(t, err)
-// 	require.NotEmpty(t, message)
+	user := createRandomUser(t)
 
-// 	require.Equal(t, arg.UserID, message.UserID)
-// 	require.Equal(t, arg.Content.String, message.Content.String)
-// 	require.NotEmpty(t, message.CreatedAt)
+	conv := createRandConv(t)
 
-// 	return message
-// }
+	arg := CreateMessageParams{
+		Content: util.RandomString(50),
+		ConvID: sql.NullInt64{conv.ID,true},
+		From: user.Name,
+	}
+	message, err := testQueries.CreateMessage(context.Background(), arg)
+	require.NoError(t, err)
+	require.NotEmpty(t, message)
 
-// func TestCreateMessage(t *testing.T) {
-// 	user := createRandomUser(t)
-// 	createRandMessage(t, user.ID)
-// }
+	require.Equal(t, arg.Content, message.Content)
+	require.Equal(t, arg.From, message.From)
+	require.NotEmpty(t, message.CreatedAt)
 
-// func TestGetMessage(t *testing.T) {
-// 	user := createRandomUser(t)
+	return message
+}
 
-// 	msg1 := createRandMessage(t, user.ID)
-// 	msg2, err := testQueries.GetMessage(context.Background(), msg1.ID)
+func TestCreateMessage(t *testing.T) {
+	createRandMessage(t)
+}
 
-// 	require.NoError(t, err)
-// 	require.NotEmpty(t, msg2)
+func TestGetMessage(t *testing.T) {
 
-// 	require.Equal(t, msg1.Content, msg2.Content)
-// 	require.Equal(t, msg1.ID, msg2.ID)
-// 	require.Equal(t, msg1.UserID, msg2.UserID)
-// 	require.WithinDuration(t, msg1.CreatedAt, msg2.CreatedAt, time.Second)
-// }
+	msg1 := createRandMessage(t)
+	msg2, err := testQueries.GetMessage(context.Background(), msg1.ID)
 
-// func TestListMessages(t *testing.T) {
-// 	user := createRandomUser(t)
+	require.NoError(t, err)
+	require.NotEmpty(t, msg2)
 
-// 	for i := 0; i < 20; i++ {
-// 		createRandMessage(t, user.ID)
-// 	}
+	require.Equal(t, msg1.Content, msg2.Content)
+	require.Equal(t, msg1.ID, msg2.ID)
+	require.Equal(t, msg1.From, msg2.From)
+	require.WithinDuration(t, msg1.CreatedAt, msg2.CreatedAt, time.Second)
+}
 
-// 	messages, err := testQueries.ListMessageByUser(context.Background(), user.ID)
+func TestListMessages(t *testing.T) {
 
-// 	require.NoError(t, err)
-// 	require.Len(t, messages, 20)
+	user := createRandomUser(t)
+	conv := createRandConv(t)
+	arg := CreateMessageParams{
+		Content: util.RandomString(50),
+		ConvID: sql.NullInt64{conv.ID,true},
+		From: user.Name,
+	}
 
-// 	for _, msg := range messages {
-// 		require.NotEmpty(t, msg)
-// 	}
+	for i := 0; i < 20; i++ {
+		msg,err := testQueries.CreateMessage(context.Background(),arg)
+		require.NoError(t,err)
+		require.NotEmpty(t,msg)
+	}
 
-// }
+	messages, err := testQueries.ListMessageByUser(context.Background(), user.Name)
 
-// func TestDeleteMessage(t *testing.T) {
-// 	user := createRandomUser(t)
+	require.NoError(t, err)
+	require.Len(t, messages, 20)
 
-// 	msg := createRandMessage(t, user.ID)
-// 	err := testQueries.DeleteMessage(context.Background(),msg.ID)
-// 	require.NoError(t,err)
+	for _, msg := range messages {
+		require.NotEmpty(t, msg)
+	}
 
-// 	msg2, err := testQueries.GetMessage(context.Background(), msg.ID)
-// 	require.Error(t, err)
-// 	require.EqualError(t, err, sql.ErrNoRows.Error())
-// 	require.Empty(t, msg2)
-// }
+}
+
+func TestDeleteMessage(t *testing.T) {
+	
+
+	msg := createRandMessage(t)
+	err := testQueries.DeleteMessage(context.Background(),msg.ID)
+	require.NoError(t,err)
+
+	msg2, err := testQueries.GetMessage(context.Background(), msg.ID)
+	require.Error(t, err)
+	require.EqualError(t, err, sql.ErrNoRows.Error())
+	require.Empty(t, msg2)
+}

@@ -18,7 +18,7 @@ type Message struct {
 	ID        int64         `json:"id"`
 	From      string        `json:"from"`
 	Content   string        `json:"content"`
-	CreatedAt sql.NullTime  `json:"createdAt"`
+	CreatedAt time.Time     `json:"createdAt"`
 	ConvID    sql.NullInt64 `json:"convID"`
 }
 
@@ -33,7 +33,7 @@ type User struct {
 }
 
 type UserConversation struct {
-	ID     int64         `json:"id"`
-	UserID sql.NullInt64 `json:"userID"`
-	ConvID sql.NullInt64 `json:"convID"`
+	ID     int64 `json:"id"`
+	UserID int64 `json:"userID"`
+	ConvID int64 `json:"convID"`
 }

@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createUser_conversation = `-- name: CreateUser_conversation :one
@@ -17,8 +16,8 @@ RETURNING id, user_id, conv_id
 `
 
 type CreateUser_conversationParams struct {
-	UserID sql.NullInt64 `json:"userID"`
-	ConvID sql.NullInt64 `json:"convID"`
+	UserID int64 `json:"userID"`
+	ConvID int64 `json:"convID"`
 }
 
 func (q *Queries) CreateUser_conversation(ctx context.Context, arg CreateUser_conversationParams) (UserConversation, error) {
@@ -35,13 +34,36 @@ WHERE user_id = $1
 `
 
 type DeleteUser_conversationParams struct {
-	UserID sql.NullInt64 `json:"userID"`
-	ConvID sql.NullInt64 `json:"convID"`
+	UserID int64 `json:"userID"`
+	ConvID int64 `json:"convID"`
 }
 
 func (q *Queries) DeleteUser_conversation(ctx context.Context, arg DeleteUser_conversationParams) error {
 	_, err := q.db.ExecContext(ctx, deleteUser_conversation, arg.UserID, arg.ConvID)
 	return err
+}
+
+const deleteUser_conversation_by_id = `-- name: DeleteUser_conversation_by_id :exec
+DELETE FROM "user_conversation"
+WHERE id = $1
+`
+
+func (q *Queries) DeleteUser_conversation_by_id(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUser_conversation_by_id, id)
+	return err
+}
+
+const getUser_conv_by_id = `-- name: GetUser_conv_by_id :one
+SELECT id, user_id, conv_id
+from "user_conversation"
+WHERE id = $1
+`
+
+func (q *Queries) GetUser_conv_by_id(ctx context.Context, id int64) (UserConversation, error) {
+	row := q.db.QueryRowContext(ctx, getUser_conv_by_id, id)
+	var i UserConversation
+	err := row.Scan(&i.ID, &i.UserID, &i.ConvID)
+	return i, err
 }
 
 const getUser_conversation = `-- name: GetUser_conversation :one
@@ -52,8 +74,8 @@ WHERE user_id = $1
 `
 
 type GetUser_conversationParams struct {
-	UserID sql.NullInt64 `json:"userID"`
-	ConvID sql.NullInt64 `json:"convID"`
+	UserID int64 `json:"userID"`
+	ConvID int64 `json:"convID"`
 }
 
 func (q *Queries) GetUser_conversation(ctx context.Context, arg GetUser_conversationParams) (UserConversation, error) {
@@ -70,7 +92,7 @@ WHERE user_id = $1
 ORDER BY user_id
 `
 
-func (q *Queries) ListUser_conversationByUser(ctx context.Context, userID sql.NullInt64) ([]UserConversation, error) {
+func (q *Queries) ListUser_conversationByUser(ctx context.Context, userID int64) ([]UserConversation, error) {
 	rows, err := q.db.QueryContext(ctx, listUser_conversationByUser, userID)
 	if err != nil {
 		return nil, err

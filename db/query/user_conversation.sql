@@ -7,6 +7,10 @@ SELECT *
 from "user_conversation"
 WHERE user_id = $1
   and conv_id = $2;
+-- name: GetUser_conv_by_id :one
+SELECT *
+from "user_conversation"
+WHERE id = $1;
 -- name: ListUser_conversationByUser :many
 SELECT *
 from "user_conversation"
@@ -20,3 +24,6 @@ ORDER BY id;
 DELETE FROM "user_conversation"
 WHERE user_id = $1
   and conv_id = $2;
+-- name: DeleteUser_conversation_by_id :exec
+DELETE FROM "user_conversation"
+WHERE id = $1;
