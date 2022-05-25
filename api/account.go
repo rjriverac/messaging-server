@@ -89,10 +89,10 @@ func (s *ToBeNullString) Scan(value interface{}) sql.NullString {
 	var res sql.NullString
 	i := *s
 	if i == "" {
-		res = sql.NullString{"", false}
+		res = sql.NullString{String: "", Valid: false}
 	} else {
 		val := fmt.Sprintf("%v", value)
-		res = sql.NullString{string(val), true}
+		res = sql.NullString{String: val, Valid: true}
 	}
 	return res
 }
@@ -112,7 +112,6 @@ type UpdateUserID struct {
 func (server *Server) updateUser(g *gin.Context) {
 	var req UpdateUserRequest
 	var uid UpdateUserID
-	fmt.Printf("uid: %v",uid )
 	if err := g.ShouldBindQuery(&uid); err != nil {
 		g.JSON(http.StatusBadRequest, errorResponse(err))
 		return
