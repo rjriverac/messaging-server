@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
@@ -14,8 +13,6 @@ type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	HashedPw string `json:"hashedPw" binding:"required"`
-	// Image    string `json:"image"`
-	// Status   string `json:"status"`
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
@@ -86,38 +83,12 @@ func (server *Server) listUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, users)
 }
 
-// type NullString sql.NullString
-
-// func (x *NullString) MarshalJSON() ([]byte, error) {
-// 	if !x.Valid {
-// 		x.Valid = true
-// 		x.String = ""
-// 	}
-// 	return json.Marshal(x.String)
-// }
-
-// func (ns *NullString) Scan(value interface{}) error {
-// 	var s sql.NullString
-// 	if err := s.Scan(value); err != nil {
-// 		return err
-// 	}
-// 	if reflect.TypeOf(value) == nil {
-// 		*ns = NullString{s.String, false}
-// 	} else {
-// 		*ns = NullString{s.String, true}
-// 	}
-// 	return nil
-// }
-
 type ToBeNullString string
 
 func (s *ToBeNullString) Scan(value interface{}) sql.NullString {
 	var res sql.NullString
-	// if _, err := s.Scan(value); err != nil {
-	// 	return res, err
-	// }
-	i := reflect.ValueOf(value)
-	if i.Elem().Interface() == "" {
+	i := *s
+	if i == "" {
 		res = sql.NullString{"", false}
 	} else {
 		val := fmt.Sprintf("%v", value)
@@ -127,7 +98,6 @@ func (s *ToBeNullString) Scan(value interface{}) sql.NullString {
 }
 
 type UpdateUserRequest struct {
-	ID       *int64          `uri:"id" binding:"min=1"`
 	Name     ToBeNullString `json:"name"`
 	Email    ToBeNullString `json:"email"`
 	Image    ToBeNullString `json:"image"`
@@ -135,10 +105,19 @@ type UpdateUserRequest struct {
 	HashedPw ToBeNullString `json:"hashedPw"`
 }
 
+type UpdateUserID struct {
+	ID int64 `form:"uid" binding:"required,min=1"`
+}
+
 func (server *Server) updateUser(g *gin.Context) {
 	var req UpdateUserRequest
-	fmt.Printf("%v",req)
-	if err := g.ShouldBindQuery(&req); err != nil {
+	var uid UpdateUserID
+	fmt.Printf("uid: %v",uid )
+	if err := g.ShouldBindQuery(&uid); err != nil {
+		g.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	if err := g.ShouldBindJSON(&req); err != nil {
 		g.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
@@ -163,7 +142,7 @@ func (server *Server) updateUser(g *gin.Context) {
 		Image:    argToParse.Image,
 		Status:   argToParse.Status,
 		HashedPw: argToParse.HashedPw,
-		ID:       *req.ID,
+		ID:       uid.ID,
 	}
 	user, err := server.store.UpdateUserInfo(g, arg)
 	if err != nil {
