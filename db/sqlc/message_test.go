@@ -18,7 +18,7 @@ func createRandMessage(t *testing.T) Message {
 
 	arg := CreateMessageParams{
 		Content: util.RandomString(50),
-		ConvID: sql.NullInt64{conv.ID,true},
+		ConvID: conv.ID,
 		From: user.Name,
 	}
 	message, err := testQueries.CreateMessage(context.Background(), arg)
@@ -56,7 +56,7 @@ func TestListMessages(t *testing.T) {
 	conv := createRandConv(t)
 	arg := CreateMessageParams{
 		Content: util.RandomString(50),
-		ConvID: sql.NullInt64{conv.ID,true},
+		ConvID: conv.ID,
 		From: user.Name,
 	}
 

@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createMessage = `-- name: CreateMessage :one
@@ -17,9 +16,9 @@ RETURNING id, "from", content, created_at, conv_id
 `
 
 type CreateMessageParams struct {
-	From    string        `json:"from"`
-	Content string        `json:"content"`
-	ConvID  sql.NullInt64 `json:"convID"`
+	From    string `json:"from"`
+	Content string `json:"content"`
+	ConvID  int64  `json:"convID"`
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
