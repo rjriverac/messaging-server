@@ -98,7 +98,7 @@ func (q *Queries) ListUser_conversationByUser(ctx context.Context, userID int64)
 		return nil, err
 	}
 	defer rows.Close()
-	var items []UserConversation
+	items := []UserConversation{}
 	for rows.Next() {
 		var i UserConversation
 		if err := rows.Scan(&i.ID, &i.UserID, &i.ConvID); err != nil {
@@ -127,7 +127,7 @@ func (q *Queries) ListUser_conversations(ctx context.Context) ([]UserConversatio
 		return nil, err
 	}
 	defer rows.Close()
-	var items []UserConversation
+	items := []UserConversation{}
 	for rows.Next() {
 		var i UserConversation
 		if err := rows.Scan(&i.ID, &i.UserID, &i.ConvID); err != nil {
