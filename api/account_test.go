@@ -21,39 +21,100 @@ import (
 func TestGetUser(t *testing.T) {
 	account := randomUser()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	testCases := []struct {
+		name       string
+		uID        int64
+		buildStubs func(store *mockdb.MockStore)
+		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "Ok",
+			uID:  account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1).
+					Return(account, nil)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				requireUserBody(t, recorder.Body, account)
+			},
+		},
+		{
+			name: "NotFound",
+			uID:  account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1).
+					Return(db.GetUserRow{}, sql.ErrNoRows)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, recorder.Code)
+			},
+		},
+		{
+			name: "IntServerErr",
+			uID:  account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Eq(account.ID)).
+					Times(1).
+					Return(db.GetUserRow{}, sql.ErrConnDone)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "BadRequest",
+			uID:  0,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
 
-	store := mockdb.NewMockStore(ctrl)
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	store.EXPECT().GetUser(gomock.Any(), gomock.Eq(account.ID)).
-		Times(1).
-		Return(account, nil)
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
 
-	server := NewServer(store)
-	recorder := httptest.NewRecorder()
-	url := fmt.Sprintf("/account/%d", account.ID)
-	request, err := http.NewRequest(http.MethodGet, url, nil)
-	require.NoError(t, err)
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+			url := fmt.Sprintf("/account/%d", tc.uID)
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
 
-	server.router.ServeHTTP(recorder, request)
-	require.Equal(t, http.StatusOK, recorder.Code)
-	requireUserBody(t,recorder.Body,account)
+			server.router.ServeHTTP(recorder, request)
+			tc.checkRes(t,recorder)
+		})
+	}
 }
 
 func requireUserBody(t *testing.T, res *bytes.Buffer, user db.GetUserRow) {
 	data, err := ioutil.ReadAll(res)
-	require.NoError(t,err)
+	require.NoError(t, err)
 
 	var responseAcc db.GetUserRow
-	err = json.Unmarshal(data,&responseAcc)
-	require.NoError(t,err)
-	require.Equal(t,responseAcc.Email,user.Email)
-	require.Equal(t,responseAcc.ID,user.ID)
-	require.Equal(t,responseAcc.Image,user.Image)
-	require.Equal(t,responseAcc.Name,user.Name)
-	require.Equal(t,responseAcc.Status,user.Status)
-	require.WithinDuration(t,responseAcc.CreatedAt,user.CreatedAt,time.Second)
+	err = json.Unmarshal(data, &responseAcc)
+	require.NoError(t, err)
+	require.Equal(t, responseAcc.Email, user.Email)
+	require.Equal(t, responseAcc.ID, user.ID)
+	require.Equal(t, responseAcc.Image, user.Image)
+	require.Equal(t, responseAcc.Name, user.Name)
+	require.Equal(t, responseAcc.Status, user.Status)
+	require.WithinDuration(t, responseAcc.CreatedAt, user.CreatedAt, time.Second)
 }
 
 func randomUser() db.GetUserRow {
