@@ -7,19 +7,23 @@ import (
 	"time"
 )
 
-type Store struct {
+type Store interface {
+	Querier
+	SendMessage(ctx context.Context, arg SendMessageParams) (SendResult, error)
+}
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
 }
 
-func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -46,7 +50,7 @@ type SendResult struct {
 	MsgID     int64     `json:"id"`
 }
 
-func (store *Store) SendMessage(ctx context.Context, arg SendMessageParams) (SendResult, error) {
+func (store *SQLStore) SendMessage(ctx context.Context, arg SendMessageParams) (SendResult, error) {
 	var result SendResult
 
 	// validate conversation exists, create message
@@ -54,18 +58,6 @@ func (store *Store) SendMessage(ctx context.Context, arg SendMessageParams) (Sen
 
 	err := store.execTx(ctx, func(q *Queries) error {
 		var err error
-
-		// if _ , err = q.GetConversation(ctx, arg.ConvID); err!=nil {
-		// 	if err = sql.ErrNoRows {
-		// 		conv,err := q.CreateConversation(ctx)
-		// 		if err != nil {
-		// 			q.CreateUser_conversation(ctx,CreateUser_conversationParams{
-		// 				ConvID: conv.ID,
-		// 				UserID: arg.From,
-		// 			})
-		// 		}
-		// 	}
-		// }
 		if _, err := q.GetUser_conversation(ctx, GetUser_conversationParams{
 			UserID: arg.UserID,
 			ConvID: arg.ConvID,
