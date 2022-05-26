@@ -65,7 +65,7 @@ func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Conversation
+	items := []Conversation{}
 	for rows.Next() {
 		var i Conversation
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
