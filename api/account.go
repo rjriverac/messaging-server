@@ -121,26 +121,12 @@ func (server *Server) updateUser(g *gin.Context) {
 		return
 	}
 
-	argToParse := struct {
-		Name     sql.NullString
-		Email    sql.NullString
-		Image    sql.NullString
-		Status   sql.NullString
-		HashedPw sql.NullString
-	}{
+	arg := db.UpdateUserInfoParams{
 		Name:     req.Name.Scan(req.Name),
 		Email:    req.Email.Scan(req.Email),
 		Image:    req.Image.Scan(req.Image),
 		Status:   req.Status.Scan(req.Status),
 		HashedPw: req.HashedPw.Scan(req.HashedPw),
-	}
-
-	arg := db.UpdateUserInfoParams{
-		Name:     argToParse.Name,
-		Email:    argToParse.Email,
-		Image:    argToParse.Image,
-		Status:   argToParse.Status,
-		HashedPw: argToParse.HashedPw,
 		ID:       uid.ID,
 	}
 	user, err := server.store.UpdateUserInfo(g, arg)
