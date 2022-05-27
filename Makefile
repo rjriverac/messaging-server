@@ -14,7 +14,7 @@ downnmigrate:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5588/message_db?sslmode=disable" -verbose down
 
 sqlc:
-	sqlc generate
+	sqlc-dev generate
 
 test:
 	go test -v -cover ./...

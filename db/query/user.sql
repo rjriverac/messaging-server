@@ -60,3 +60,11 @@ INNER JOIN "user_conversation" on "Users".id = "user_conversation".user_id
 INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
 inner JOIN "Message" on "Conversation".id = "Message".conv_id
 Where "Users".id = $1;
+-- name: ListConvFromUser :many
+SELECT 
+"Conversation".id,"Conversation".name
+FROM
+"Users"
+INNER JOIN "user_conversation" on "Users".id = "user_conversation".user_id
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
+WHERE "Users".id = $1;

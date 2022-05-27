@@ -126,7 +126,6 @@ func TestListUserMessages(t *testing.T) {
 	user1 := createRandomUser(t)
 	user2 := createRandomUser(t)
 
-
 	convs := make([]Conversation, 2)
 
 	conv1 := createRandConv(t)
@@ -163,22 +162,68 @@ func TestListUserMessages(t *testing.T) {
 		)
 	}
 
-	u1Msg,err1 := testQueries.ListUserMessages(context.Background(),user1.ID)
-	u2Msg,err2 := testQueries.ListUserMessages(context.Background(),user2.ID)
-	
-	require.NoError(t,err1)
-	require.NoError(t,err2)
+	u1Msg, err1 := testQueries.ListUserMessages(context.Background(), user1.ID)
+	u2Msg, err2 := testQueries.ListUserMessages(context.Background(), user2.ID)
 
-	require.NotEmpty(t,u1Msg)
-	require.NotEmpty(t,u2Msg)
+	require.NoError(t, err1)
+	require.NoError(t, err2)
 
-	require.Len(t,u1Msg,8)
-	require.Len(t,u2Msg,8)
+	require.NotEmpty(t, u1Msg)
+	require.NotEmpty(t, u2Msg)
+
+	require.Len(t, u1Msg, 8)
+	require.Len(t, u2Msg, 8)
 	for _, msg := range u1Msg {
-		require.NotEmpty(t,msg)
+		require.NotEmpty(t, msg)
 	}
 	for _, msg := range u2Msg {
-		require.NotEmpty(t,msg)
+		require.NotEmpty(t, msg)
+	}
+
+}
+func TestListConvFromUser(t *testing.T) {
+	user1 := createRandomUser(t)
+	var convs []Conversation
+	for i := 0; i < 10; i++ {
+		c := createRandConv(t)
+		convs = append(convs, c)
+	}
+	for _, con := range convs {
+		usr := createRandomUser(t)
+		for i := 0; i < 5; i++ {
+			if i%2 != 0 {
+				arg := CreateMessageParams{
+					From:    usr.Name,
+					Content: util.RandomString(20),
+					ConvID:  con.ID,
+				}
+				testQueries.CreateMessage(context.Background(), arg)
+			} else {
+				arg := CreateMessageParams{
+					From:    user1.Name,
+					Content: util.RandomString(20),
+					ConvID:  con.ID,
+				}
+				testQueries.CreateMessage(context.Background(), arg)
+			}
+		}
+		testQueries.CreateUser_conversation(context.Background(),CreateUser_conversationParams{
+			UserID: user1.ID,
+			ConvID: con.ID,
+		})
+		testQueries.CreateUser_conversation(context.Background(),CreateUser_conversationParams{
+			UserID: usr.ID,
+			ConvID: con.ID,
+		})
+	}
+
+	list, err := testQueries.ListConvFromUser(context.Background(), user1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, list)
+	require.Len(t,list,10)
+	for _, c := range list {
+		require.NotEmpty(t, c)
+		require.NotEmpty(t, c.Name)
 	}
 
 }

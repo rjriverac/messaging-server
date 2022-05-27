@@ -241,6 +241,21 @@ func (mr *MockStoreMockRecorder) GetUser_conversation(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser_conversation", reflect.TypeOf((*MockStore)(nil).GetUser_conversation), arg0, arg1)
 }
 
+// ListConvFromUser mocks base method.
+func (m *MockStore) ListConvFromUser(arg0 context.Context, arg1 int64) ([]db.Conversation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListConvFromUser", arg0, arg1)
+	ret0, _ := ret[0].([]db.Conversation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListConvFromUser indicates an expected call of ListConvFromUser.
+func (mr *MockStoreMockRecorder) ListConvFromUser(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConvFromUser", reflect.TypeOf((*MockStore)(nil).ListConvFromUser), arg0, arg1)
+}
+
 // ListConversations mocks base method.
 func (m *MockStore) ListConversations(arg0 context.Context, arg1 db.ListConversationsParams) ([]db.Conversation, error) {
 	m.ctrl.T.Helper()

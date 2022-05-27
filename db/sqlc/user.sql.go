@@ -110,6 +110,39 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (GetUserRow, error) {
 	return i, err
 }
 
+const listConvFromUser = `-- name: ListConvFromUser :many
+SELECT 
+"Conversation".id,"Conversation".name
+FROM
+"Users"
+INNER JOIN "user_conversation" on "Users".id = "user_conversation".user_id
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
+WHERE "Users".id = $1
+`
+
+func (q *Queries) ListConvFromUser(ctx context.Context, id int64) ([]Conversation, error) {
+	rows, err := q.db.QueryContext(ctx, listConvFromUser, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Conversation{}
+	for rows.Next() {
+		var i Conversation
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserMessages = `-- name: ListUserMessages :many
 SELECT 
 "Conversation".name as conversation_name,"Message".from,"Message".content as message_content,"Message".created_at,
