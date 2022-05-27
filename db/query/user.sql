@@ -50,15 +50,13 @@ RETURNING id,
 -- name: DeleteUser :exec
 DELETE FROM "Users"
 WHERE id = $1;
--- -- name: UpdateUserHashedPW :exec
--- UPDATE "Users"
--- SET hashed_pw = $2
--- WHERE id = $1;
--- -- name: UpdateUserEmail :exec
--- UPDATE "Users"
--- SET email = $2
--- WHERE id = $1;
--- -- name: UpdateUsername :exec
--- UPDATE "Users"
--- SET name = $2
--- WHERE id = $1;
+-- name: ListUserMessages :many
+SELECT 
+"Conversation".name as conversation_name,"Message".from,"Message".content as message_content,"Message".created_at,
+"user_conversation".conv_id, "Message".id as message_id
+FROM
+"Users"
+INNER JOIN "user_conversation" on "Users".id = "user_conversation".user_id
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
+inner JOIN "Message" on "Conversation".id = "Message".conv_id
+Where "Users".id = $1;

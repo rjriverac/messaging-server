@@ -26,6 +26,7 @@ type Querier interface {
 	GetUser_conversation(ctx context.Context, arg GetUser_conversationParams) (UserConversation, error)
 	ListConversations(ctx context.Context, arg ListConversationsParams) ([]Conversation, error)
 	ListMessageByUser(ctx context.Context, from string) ([]Message, error)
+	ListUserMessages(ctx context.Context, id int64) ([]ListUserMessagesRow, error)
 	ListUser_conversationByUser(ctx context.Context, userID int64) ([]UserConversation, error)
 	ListUser_conversations(ctx context.Context) ([]UserConversation, error)
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error)

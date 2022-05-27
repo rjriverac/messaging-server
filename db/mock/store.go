@@ -271,6 +271,21 @@ func (mr *MockStoreMockRecorder) ListMessageByUser(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMessageByUser", reflect.TypeOf((*MockStore)(nil).ListMessageByUser), arg0, arg1)
 }
 
+// ListUserMessages mocks base method.
+func (m *MockStore) ListUserMessages(arg0 context.Context, arg1 int64) ([]db.ListUserMessagesRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserMessages", arg0, arg1)
+	ret0, _ := ret[0].([]db.ListUserMessagesRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListUserMessages indicates an expected call of ListUserMessages.
+func (mr *MockStoreMockRecorder) ListUserMessages(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserMessages", reflect.TypeOf((*MockStore)(nil).ListUserMessages), arg0, arg1)
+}
+
 // ListUser_conversationByUser mocks base method.
 func (m *MockStore) ListUser_conversationByUser(arg0 context.Context, arg1 int64) ([]db.UserConversation, error) {
 	m.ctrl.T.Helper()
