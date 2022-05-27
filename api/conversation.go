@@ -15,9 +15,9 @@ type getConversationRequest struct {
 
 type NullString sql.NullString
 
-func MarshalNullStr(str *NullString) ([]byte, error) {
-	if str.Valid {
-		return json.Marshal(str.String)
+func (s *NullString) MarshalNullStr() ([]byte, error) {
+	if s.Valid {
+		return json.Marshal(s.String)
 	} else {
 		return json.Marshal(nil)
 	}
@@ -45,7 +45,8 @@ func (server *Server) getConvos(g *gin.Context) {
 		g.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
 	for _, conv := range convs {
-		str, _ := MarshalNullStr((*NullString)(&conv.Name))
+		nstr := NullString(conv.Name)
+		str, _:= nstr.MarshalNullStr()
 		ret = append(ret, ConversationReturn{ID: conv.ID, Name: str})
 	}
 
