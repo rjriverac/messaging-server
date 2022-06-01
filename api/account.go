@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
@@ -13,6 +14,15 @@ type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	HashedPw string `json:"hashedPw" binding:"required"`
+}
+
+type CreateUserReturn struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Image     []byte    `json:"image"`
+	Status    []byte    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
@@ -31,7 +41,23 @@ func (server *Server) createUser(ctx *gin.Context) {
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 	}
-	ctx.JSON(http.StatusOK, user)
+
+	istr := NullString(user.Image)
+	str, _ := istr.MarshalNullStr()
+	ststr := NullString(user.Status)
+	ustr, _ := ststr.MarshalNullStr()
+	
+	ret := CreateUserReturn{
+		ID: user.ID,
+		Name: user.Name,
+		Email: user.Email,
+		Image: str,
+		Status: ustr,
+		CreatedAt: user.CreatedAt,
+	}
+
+
+	ctx.JSON(http.StatusOK, ret)
 }
 
 type GetUserRequest struct {

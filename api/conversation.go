@@ -18,9 +18,8 @@ type NullString sql.NullString
 func (s *NullString) MarshalNullStr() ([]byte, error) {
 	if s.Valid {
 		return json.Marshal(s.String)
-	} else {
-		return json.Marshal(nil)
 	}
+	return []byte(""), nil
 }
 
 type ConversationReturn struct {

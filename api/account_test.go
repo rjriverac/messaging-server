@@ -237,3 +237,46 @@ func listMatch(t *testing.T, res *bytes.Buffer, list []db.ListUsersRow) {
 		}
 	}
 }
+func TestCreateUser(t *testing.T) {
+
+	cUserParams := db.CreateUserParams{
+		Name: util.RandomUserGen(),
+		Email: util.RandomEmail(),
+		HashedPw: util.RandomHashedPW(),
+		Image: util.NullStrGen(10),
+		Status: util.NullStrGen(20),
+	}
+	empty := []byte("")
+	now := time.Now()
+	cUserRow := CreateUserReturn{
+		Name: cUserParams.Name,
+		Email: cUserParams.Email,
+		Image: empty,
+		Status: empty,
+		CreatedAt: now,
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	store := mockdb.NewMockStore(ctrl)
+
+	store.EXPECT().
+	CreateUser(gomock.Any(),cUserParams).
+	Times(1).
+	Return(cUserRow, nil)
+
+	server := NewServer(store)
+	recorder := httptest.NewRecorder()
+	url := "/account"
+
+	marshalled, _ := json.Marshal(cUserParams)
+
+	request,err := http.NewRequest(http.MethodPost,url,bytes.NewReader(marshalled))
+	require.NoError(t,err)
+
+	server.router.ServeHTTP(recorder, request)
+	require.Equal(t,http.StatusOK, recorder.Code)
+
+
+}
