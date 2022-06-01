@@ -97,9 +97,82 @@ func TestGetUser(t *testing.T) {
 			require.NoError(t, err)
 
 			server.router.ServeHTTP(recorder, request)
-			tc.checkRes(t,recorder)
+			tc.checkRes(t, recorder)
 		})
 	}
+}
+
+func TestListUsers(t *testing.T) {
+
+	list := randomListUser(10)
+
+	testCases := []struct {
+		name       string
+		params     db.ListUsersParams
+		buildStubs func(store *mockdb.MockStore, params db.ListUsersParams)
+		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name:   "OK",
+			params: db.ListUsersParams{Limit: 10, Offset: 1},
+			buildStubs: func(store *mockdb.MockStore, params db.ListUsersParams) {
+				store.EXPECT().
+					ListUsers(gomock.Any(), gomock.Eq(db.ListUsersParams{Limit: params.Limit, Offset: (params.Offset - 1) * params.Limit})).
+					Times(1).
+					Return(list, nil)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+				listMatch(t, recorder.Body, list)
+			},
+		}, {
+			name:   "Bad Request",
+			params: db.ListUsersParams{Limit: 50, Offset: 1},
+			buildStubs: func(store *mockdb.MockStore, params db.ListUsersParams) {
+				store.EXPECT().
+					ListUsers(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		}, {
+			name:   "Internal Server Err",
+			params: db.ListUsersParams{Limit: 10, Offset: 1},
+			buildStubs: func(store *mockdb.MockStore, params db.ListUsersParams) {
+				store.EXPECT().
+					ListUsers(gomock.Any(), gomock.Eq(db.ListUsersParams{Limit: params.Limit, Offset: (params.Offset - 1) * params.Limit})).
+					Times(1).
+					Return(list, sql.ErrConnDone)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+
+			tc.buildStubs(store, tc.params)
+
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+
+			url := fmt.Sprintf("/account?page_id=%d&page_size=%d", tc.params.Offset, tc.params.Limit)
+			request, err := http.NewRequest(http.MethodGet, url, nil)
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkRes(t, recorder)
+		})
+	}
+
 }
 
 func requireUserBody(t *testing.T, res *bytes.Buffer, user db.GetUserRow) {
@@ -127,5 +200,40 @@ func randomUser() db.GetUserRow {
 		Image:     sql.NullString{String: util.RandomString(10), Valid: true},
 		Status:    sql.NullString{String: util.RandomString(10), Valid: true},
 		CreatedAt: time,
+	}
+}
+
+func randomListUser(num int) []db.ListUsersRow {
+	var list []db.ListUsersRow
+	for i := 0; i < num; i++ {
+		list = append(list, db.ListUsersRow{
+			ID:     util.RandomInt(1, 1000),
+			Name:   util.RandomUserGen(),
+			Email:  util.RandomEmail(),
+			Image:  util.NullStrGen(10),
+			Status: util.NullStrGen(15),
+		})
+	}
+	return list
+}
+
+func listMatch(t *testing.T, res *bytes.Buffer, list []db.ListUsersRow) {
+	data, err := ioutil.ReadAll(res)
+	require.NoError(t, err)
+
+	var retrievedList []db.ListUsersRow
+	err = json.Unmarshal(data, &retrievedList)
+	require.NoError(t, err)
+	require.Equal(t, len(list), len(retrievedList))
+	for _, row := range list {
+		for _, qrow := range retrievedList {
+			if row == qrow {
+				require.Equal(t, row.Email, qrow.Email)
+				require.Equal(t, row.ID, qrow.ID)
+				require.Equal(t, row.Image, qrow.Image)
+				require.Equal(t, row.Name, qrow.Name)
+				require.Equal(t, row.Status, qrow.Status)
+			}
+		}
 	}
 }
