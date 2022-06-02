@@ -40,6 +40,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 
 	istr := NullString(user.Image)

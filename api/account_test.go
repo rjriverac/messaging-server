@@ -240,20 +240,29 @@ func listMatch(t *testing.T, res *bytes.Buffer, list []db.ListUsersRow) {
 func TestCreateUser(t *testing.T) {
 
 	cUserParams := db.CreateUserParams{
-		Name: util.RandomUserGen(),
-		Email: util.RandomEmail(),
+		Name:     util.RandomUserGen(),
+		Email:    util.RandomEmail(),
 		HashedPw: util.RandomHashedPW(),
-		Image: util.NullStrGen(10),
-		Status: util.NullStrGen(20),
+		// Image:    util.NullStrGen(10),
+		// Status:   util.NullStrGen(20),
 	}
-	empty := []byte("")
-	now := time.Now()
-	cUserRow := CreateUserReturn{
-		Name: cUserParams.Name,
-		Email: cUserParams.Email,
-		Image: empty,
-		Status: empty,
-		CreatedAt: now,
+	// empty := []byte("")
+	// now := time.Now()
+	// cUserRow := CreateUserReturn{
+	// 	Name: cUserParams.Name,
+	// 	Email: cUserParams.Email,
+	// 	Image: empty,
+	// 	Status: empty,
+	// 	CreatedAt: now,
+	// }
+
+	anotherUser := db.CreateUserRow{
+		ID:        util.RandomInt(0, 1000),
+		Name:      cUserParams.Name,
+		Email:     cUserParams.Email,
+		Image:     sql.NullString{Valid: false},
+		Status:    sql.NullString{Valid: false},
+		CreatedAt: time.Now(),
 	}
 
 	ctrl := gomock.NewController(t)
@@ -262,9 +271,9 @@ func TestCreateUser(t *testing.T) {
 	store := mockdb.NewMockStore(ctrl)
 
 	store.EXPECT().
-	CreateUser(gomock.Any(),cUserParams).
-	Times(1).
-	Return(cUserRow, nil)
+		CreateUser(gomock.Any(), gomock.Eq(cUserParams)).
+		Times(1).
+		Return(anotherUser, nil)
 
 	server := NewServer(store)
 	recorder := httptest.NewRecorder()
@@ -272,11 +281,10 @@ func TestCreateUser(t *testing.T) {
 
 	marshalled, _ := json.Marshal(cUserParams)
 
-	request,err := http.NewRequest(http.MethodPost,url,bytes.NewReader(marshalled))
-	require.NoError(t,err)
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(marshalled))
+	require.NoError(t, err)
 
 	server.router.ServeHTTP(recorder, request)
-	require.Equal(t,http.StatusOK, recorder.Code)
-
+	require.Equal(t, http.StatusOK, recorder.Code)
 
 }
