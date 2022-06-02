@@ -243,18 +243,7 @@ func TestCreateUser(t *testing.T) {
 		Name:     util.RandomUserGen(),
 		Email:    util.RandomEmail(),
 		HashedPw: util.RandomHashedPW(),
-		// Image:    util.NullStrGen(10),
-		// Status:   util.NullStrGen(20),
 	}
-	// empty := []byte("")
-	// now := time.Now()
-	// cUserRow := CreateUserReturn{
-	// 	Name: cUserParams.Name,
-	// 	Email: cUserParams.Email,
-	// 	Image: empty,
-	// 	Status: empty,
-	// 	CreatedAt: now,
-	// }
 
 	anotherUser := db.CreateUserRow{
 		ID:        util.RandomInt(0, 1000),
@@ -265,26 +254,69 @@ func TestCreateUser(t *testing.T) {
 		CreatedAt: time.Now(),
 	}
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	testCases := []struct {
+		name       string
+		params     db.CreateUserParams
+		buildStubs func(store *mockdb.MockStore, params db.CreateUserParams)
+		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			params: db.CreateUserParams{
+				Name:     util.RandomUserGen(),
+				Email:    util.RandomEmail(),
+				HashedPw: util.RandomHashedPW(),
+			},
+			buildStubs: func(store *mockdb.MockStore, params db.CreateUserParams) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Eq(params)).
+					Times(1).
+					Return(anotherUser, nil)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		},
+		{
+			name: "bad request",
+			params: db.CreateUserParams{
+				Name: "",
+				Email: "",
+				HashedPw: "",
+			},
+			buildStubs: func(store *mockdb.MockStore,params db.CreateUserParams) {
+					store.EXPECT().
+						CreateUser(gomock.Any(), gomock.Any()).
+						Times(0)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
 
-	store := mockdb.NewMockStore(ctrl)
+	for i := range testCases {
+		tc := testCases[i]
 
-	store.EXPECT().
-		CreateUser(gomock.Any(), gomock.Eq(cUserParams)).
-		Times(1).
-		Return(anotherUser, nil)
+		t.Run(tc.name, func(t *testing.T) {
 
-	server := NewServer(store)
-	recorder := httptest.NewRecorder()
-	url := "/account"
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	marshalled, _ := json.Marshal(cUserParams)
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store,tc.params)
 
-	request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(marshalled))
-	require.NoError(t, err)
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+			url := "/account"
 
-	server.router.ServeHTTP(recorder, request)
-	require.Equal(t, http.StatusOK, recorder.Code)
+			marshalled, _ := json.Marshal(tc.params)
 
+			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(marshalled))
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkRes(t, recorder)
+		})
+	}
 }
