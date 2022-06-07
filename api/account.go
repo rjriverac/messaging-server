@@ -47,16 +47,15 @@ func (server *Server) createUser(ctx *gin.Context) {
 	str, _ := istr.MarshalNullStr()
 	ststr := NullString(user.Status)
 	ustr, _ := ststr.MarshalNullStr()
-	
+
 	ret := CreateUserReturn{
-		ID: user.ID,
-		Name: user.Name,
-		Email: user.Email,
-		Image: str,
-		Status: ustr,
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Image:     str,
+		Status:    ustr,
 		CreatedAt: user.CreatedAt,
 	}
-
 
 	ctx.JSON(http.StatusOK, ret)
 }
@@ -136,6 +135,15 @@ type UpdateUserID struct {
 	ID int64 `form:"uid" binding:"required,min=1"`
 }
 
+type UpdateUserReturn struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Image     string    `json:"image"`
+	Status    string   `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 func (server *Server) updateUser(g *gin.Context) {
 	var req UpdateUserRequest
 	var uid UpdateUserID
@@ -161,6 +169,27 @@ func (server *Server) updateUser(g *gin.Context) {
 		g.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	g.JSON(http.StatusAccepted, user)
+	nullStrs := map[string]NullString{
+		"Image":  NullString(user.Image),
+		"Status": NullString(user.Status),
+	}
+	ret := UpdateUserReturn{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+
+	for key, nstring := range nullStrs {
+		str := nstring.NullStrToString()
+		switch key {
+		case "Image":
+			ret.Image = str
+		case "Status":
+			ret.Status = str
+		}
+	}
+
+	g.JSON(http.StatusAccepted, ret)
 
 }

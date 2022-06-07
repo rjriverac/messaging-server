@@ -276,18 +276,33 @@ func TestCreateUser(t *testing.T) {
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 			},
+		}, {
+			name: "int server err",
+			params: db.CreateUserParams{
+				Name:     util.RandomUserGen(),
+				Email:    util.RandomEmail(),
+				HashedPw: util.RandomHashedPW(),
+			},
+			buildStubs: func(store *mockdb.MockStore, params db.CreateUserParams) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), params).
+					Times(1).Return(anotherUser, sql.ErrConnDone)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
 		},
 		{
 			name: "bad request",
 			params: db.CreateUserParams{
-				Name: "",
-				Email: "",
+				Name:     "",
+				Email:    "",
 				HashedPw: "",
 			},
-			buildStubs: func(store *mockdb.MockStore,params db.CreateUserParams) {
-					store.EXPECT().
-						CreateUser(gomock.Any(), gomock.Any()).
-						Times(0)
+			buildStubs: func(store *mockdb.MockStore, params db.CreateUserParams) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
 			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -304,7 +319,7 @@ func TestCreateUser(t *testing.T) {
 			defer ctrl.Finish()
 
 			store := mockdb.NewMockStore(ctrl)
-			tc.buildStubs(store,tc.params)
+			tc.buildStubs(store, tc.params)
 
 			server := NewServer(store)
 			recorder := httptest.NewRecorder()
@@ -319,4 +334,96 @@ func TestCreateUser(t *testing.T) {
 			tc.checkRes(t, recorder)
 		})
 	}
+}
+
+func TestUpdateUser(t *testing.T) {
+
+	user := randomUser()
+	now := time.Now()
+
+	testCases := []struct {
+		name       string
+		uId        int64
+		params     UpdateUserRequest
+		buildStubs func(store *mockdb.MockStore, params UpdateUserRequest, uID int64)
+		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder,params UpdateUserRequest, uID int64)
+	}{
+		{
+			name: "OK",
+			uId:  user.ID,
+			params: UpdateUserRequest{
+				Name:     ToBeNullString(util.RandomUserGen()),
+				Email:    ToBeNullString(util.RandomEmail()),
+				Image:    ToBeNullString(util.RandomString(5)),
+				Status:   ToBeNullString(util.RandomString(10)),
+				HashedPw: ToBeNullString(""),
+			},
+			buildStubs: func(store *mockdb.MockStore, params UpdateUserRequest, uId int64) {
+				store.EXPECT().
+					UpdateUserInfo(gomock.Any(), db.UpdateUserInfoParams{
+						Name:     params.Name.Scan(params.Name),
+						Email:    params.Email.Scan(params.Email),
+						Image:    params.Image.Scan(params.Image),
+						Status:   params.Status.Scan(params.Status),
+						HashedPw: params.HashedPw.Scan(params.HashedPw),
+						ID:       uId,
+					}).
+					Times(1).
+					Return(db.UpdateUserInfoRow{
+						ID: uId,
+						Name: string(params.Name),
+						Email: string(params.Email),
+						Image: params.Image.Scan(params.Image),
+						Status:   params.Status.Scan(params.Status),
+						CreatedAt: now,
+					}, nil)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder, params UpdateUserRequest, uID int64) {
+				require.Equal(t, http.StatusAccepted, recorder.Code)
+				requireUserUpdateBody(t, recorder.Body, params,uID)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store, tc.params, tc.uId)
+
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+			url := fmt.Sprintf("/account/?uid=%v", tc.uId)
+
+			marshalled, _ := json.Marshal(tc.params)
+			request, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(marshalled))
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkRes(t, recorder,tc.params,tc.uId)
+
+		})
+	}
+
+}
+
+func requireUserUpdateBody(t *testing.T, res *bytes.Buffer, params UpdateUserRequest, uID int64) {
+	data, err := ioutil.ReadAll(res)
+	require.NoError(t, err)
+	now := time.Now()
+
+	var user UpdateUserReturn
+	err = json.Unmarshal(data, &user)
+	fmt.Printf("user:%v\n",user)
+	fmt.Printf("params:%v\n",params)
+	require.NoError(t, err)
+	require.Equal(t,string(params.Email),user.Email)
+	require.Equal(t,string(params.Name),user.Name)
+	require.Equal(t,string(params.Status),user.Status)
+	require.Equal(t,string(params.Image),user.Image)
+	require.Equal(t,uID,user.ID)
+	require.WithinDuration(t,now,user.CreatedAt,time.Second)
 }

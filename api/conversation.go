@@ -21,10 +21,17 @@ func (s *NullString) MarshalNullStr() ([]byte, error) {
 	}
 	return []byte(""), nil
 }
+func (s *NullString) NullStrToString() (string) {
+	if s.Valid {
+		return s.String
+	}
+	return ""
+}
+
 
 type ConversationReturn struct {
 	ID   int64  `json:"id"`
-	Name []byte `json:"name"`
+	Name string `json:"name"`
 }
 
 func (server *Server) getConvos(g *gin.Context) {
@@ -45,7 +52,7 @@ func (server *Server) getConvos(g *gin.Context) {
 	}
 	for _, conv := range convs {
 		nstr := NullString(conv.Name)
-		str, _:= nstr.MarshalNullStr()
+		str := nstr.NullStrToString()
 		ret = append(ret, ConversationReturn{ID: conv.ID, Name: str})
 	}
 
