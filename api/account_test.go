@@ -382,7 +382,38 @@ func TestUpdateUser(t *testing.T) {
 				require.Equal(t, http.StatusAccepted, recorder.Code)
 				requireUserUpdateBody(t, recorder.Body, params,uID)
 			},
+		},{
+			name: "bad request UID",
+			uId: 0,
+			params: UpdateUserRequest{
+				Name:     ToBeNullString(util.RandomUserGen()),
+				Email:    ToBeNullString(util.RandomEmail()),
+				Image:    ToBeNullString(util.RandomString(5)),
+				Status:   ToBeNullString(util.RandomString(10)),
+				HashedPw: ToBeNullString(""),
+			},
+			buildStubs: func(store *mockdb.MockStore, params UpdateUserRequest, uID int64) {
+				store.EXPECT().
+				UpdateUserInfo(gomock.Any(),gomock.Any()).
+				Times(0)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder, params UpdateUserRequest, uID int64) {
+				require.Equal(t,http.StatusBadRequest,recorder.Code)
+			},
+		},{
+			name: "bad request json",
+			uId: user.ID,
+			params: UpdateUserRequest{},
+			buildStubs: func(store *mockdb.MockStore, params UpdateUserRequest, uID int64) {
+				store.EXPECT().
+				UpdateUserInfo(gomock.Any(),gomock.Any()).
+				Times(0)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder, params UpdateUserRequest, uID int64) {
+				require.Equal(t,http.StatusBadRequest,recorder.Code)
+			},
 		},
+
 	}
 
 	for i := range testCases {
@@ -417,8 +448,7 @@ func requireUserUpdateBody(t *testing.T, res *bytes.Buffer, params UpdateUserReq
 
 	var user UpdateUserReturn
 	err = json.Unmarshal(data, &user)
-	fmt.Printf("user:%v\n",user)
-	fmt.Printf("params:%v\n",params)
+
 	require.NoError(t, err)
 	require.Equal(t,string(params.Email),user.Email)
 	require.Equal(t,string(params.Name),user.Name)

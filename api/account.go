@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
 )
 
@@ -140,7 +141,7 @@ type UpdateUserReturn struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Image     string    `json:"image"`
-	Status    string   `json:"status"`
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -174,9 +175,9 @@ func (server *Server) updateUser(g *gin.Context) {
 		"Status": NullString(user.Status),
 	}
 	ret := UpdateUserReturn{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 	}
 
@@ -192,4 +193,12 @@ func (server *Server) updateUser(g *gin.Context) {
 
 	g.JSON(http.StatusAccepted, ret)
 
+}
+
+func updateUserStructLevel(sl validator.StructLevel) {
+	info := sl.Current().Interface().(UpdateUserRequest)
+
+	if len(info.Name) == 0 && len(info.Email) == 0 && len(info.HashedPw) == 0 && len(info.Image) == 0 && len(info.Status) == 0 {
+		sl.ReportError(info.Name,"name","name","name","")
+	}
 }
