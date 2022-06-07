@@ -41,7 +41,7 @@ func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) erro
 }
 
 type SendMessageParams struct {
-	*CreateMessageParams
+	CreateMessageParams
 	UserID int64 `json:"from_id"`
 }
 

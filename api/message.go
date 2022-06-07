@@ -10,7 +10,7 @@ import (
 type NewMessageReq struct {
 	From    string `json:"from" binding:"required"`
 	Content string `json:"content" binding:"required"`
-	ConvID  int64  `json:"convID" binding:"required"`
+	ConvID  int64  `json:"convID" binding:"min=1"`
 	UserID  int64  `json:"from_id" binding:"required"`
 }
 
@@ -21,7 +21,7 @@ func (s *Server) sendMessage(ctx *gin.Context) {
 		return
 	}
 	arg := db.SendMessageParams{
-		CreateMessageParams: &db.CreateMessageParams{
+		CreateMessageParams: db.CreateMessageParams{
 			From: msgReq.From,
 			Content: msgReq.Content,
 			ConvID: msgReq.ConvID,
