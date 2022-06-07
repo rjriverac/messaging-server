@@ -11,7 +11,7 @@ type NewMessageReq struct {
 	From    string `json:"from" binding:"required"`
 	Content string `json:"content" binding:"required"`
 	ConvID  int64  `json:"convID" binding:"min=1"`
-	UserID  int64  `json:"from_id" binding:"required"`
+	UserID  int64  `json:"from_id" binding:"required,min=1"`
 }
 
 func (s *Server) sendMessage(ctx *gin.Context) {
