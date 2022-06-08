@@ -11,10 +11,12 @@ import (
 )
 
 func createRandomUser(t *testing.T) CreateUserRow {
+	hashedPw, err := util.HashPassword(util.RandomString(10))
+	require.NoError(t, err)
 	arg := CreateUserParams{
 		Name:     util.RandomUserGen(),
 		Email:    util.RandomEmail(),
-		HashedPw: util.RandomHashedPW(),
+		HashedPw: hashedPw,
 		Image:    util.NullStrGen(8),
 		Status:   sql.NullString{String: "", Valid: false},
 	}
@@ -207,11 +209,11 @@ func TestListConvFromUser(t *testing.T) {
 				testQueries.CreateMessage(context.Background(), arg)
 			}
 		}
-		testQueries.CreateUser_conversation(context.Background(),CreateUser_conversationParams{
+		testQueries.CreateUser_conversation(context.Background(), CreateUser_conversationParams{
 			UserID: user1.ID,
 			ConvID: con.ID,
 		})
-		testQueries.CreateUser_conversation(context.Background(),CreateUser_conversationParams{
+		testQueries.CreateUser_conversation(context.Background(), CreateUser_conversationParams{
 			UserID: usr.ID,
 			ConvID: con.ID,
 		})
@@ -220,7 +222,7 @@ func TestListConvFromUser(t *testing.T) {
 	list, err := testQueries.ListConvFromUser(context.Background(), user1.ID)
 	require.NoError(t, err)
 	require.NotEmpty(t, list)
-	require.Len(t,list,10)
+	require.Len(t, list, 10)
 	for _, c := range list {
 		require.NotEmpty(t, c)
 		require.NotEmpty(t, c.Name)
