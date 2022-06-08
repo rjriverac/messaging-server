@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -17,6 +18,32 @@ import (
 	"github.com/rjriverac/messaging-server/util"
 	"github.com/stretchr/testify/require"
 )
+
+type eqCreateUserParamsMatcher struct {
+	arg      db.CreateUserParams
+	password string
+}
+
+func (e eqCreateUserParamsMatcher) Matches(x interface{}) bool {
+	arg, ok := x.(db.CreateUserParams)
+
+	if !ok {
+		return false
+	}
+	err := util.CheckPassword(e.password, arg.HashedPw)
+	if err != nil {
+		return false
+	}
+	e.arg.HashedPw = arg.HashedPw
+	return reflect.DeepEqual(e.arg, arg)
+}
+
+func (e eqCreateUserParamsMatcher) String() string {
+	return fmt.Sprintf("Matches arg %v and password %v", e.arg, e.password)
+}
+func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
+	return eqCreateUserParamsMatcher{arg, password}
+}
 
 func TestGetUser(t *testing.T) {
 	account := randomUser()
@@ -203,6 +230,26 @@ func randomUser() db.GetUserRow {
 	}
 }
 
+func randomDBUser(t *testing.T) (user db.User, password string) {
+	password = util.RandomHashedPW()
+	hashed, err := util.HashPassword(password)
+	require.NoError(t, err)
+
+	now := time.Now()
+	time := now.Add(time.Duration(-10) * time.Minute)
+
+	user = db.User{
+		ID:        util.RandomInt(1, 1000),
+		Name:      util.RandomUserGen(),
+		Email:     util.RandomEmail(),
+		HashedPw:  hashed,
+		Image:     sql.NullString{String: util.RandomString(10), Valid: true},
+		Status:    sql.NullString{String: util.RandomString(10), Valid: true},
+		CreatedAt: time,
+	}
+	return
+}
+
 func randomListUser(num int) []db.ListUsersRow {
 	var list []db.ListUsersRow
 	for i := 0; i < num; i++ {
@@ -239,19 +286,16 @@ func listMatch(t *testing.T, res *bytes.Buffer, list []db.ListUsersRow) {
 }
 func TestCreateUser(t *testing.T) {
 
-	cUserParams := db.CreateUserParams{
-		Name:     util.RandomUserGen(),
-		Email:    util.RandomEmail(),
-		HashedPw: util.RandomHashedPW(),
-	}
+	user, password := randomDBUser(t)
+	fmt.Printf("user: %v \n password: %v\n hashedPw: %v\n", user, password, user.HashedPw)
 
 	anotherUser := db.CreateUserRow{
-		ID:        util.RandomInt(0, 1000),
-		Name:      cUserParams.Name,
-		Email:     cUserParams.Email,
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
 		Image:     sql.NullString{Valid: false},
 		Status:    sql.NullString{Valid: false},
-		CreatedAt: time.Now(),
+		CreatedAt: user.CreatedAt,
 	}
 
 	testCases := []struct {
@@ -263,13 +307,13 @@ func TestCreateUser(t *testing.T) {
 		{
 			name: "OK",
 			params: db.CreateUserParams{
-				Name:     util.RandomUserGen(),
-				Email:    util.RandomEmail(),
-				HashedPw: util.RandomHashedPW(),
+				Name:  user.Name,
+				Email: user.Email,
 			},
 			buildStubs: func(store *mockdb.MockStore, params db.CreateUserParams) {
+				fmt.Printf("Params in stub func: %v\n", params)
 				store.EXPECT().
-					CreateUser(gomock.Any(), gomock.Eq(params)).
+					CreateUser(gomock.Any(), EqCreateUserParams(params, password)).
 					Times(1).
 					Return(anotherUser, nil)
 			},
@@ -414,7 +458,7 @@ func TestUpdateUser(t *testing.T) {
 			},
 		}, {
 			name: "Internal Server Err",
-			uId: user.ID,
+			uId:  user.ID,
 			params: UpdateUserRequest{
 				Name:     ToBeNullString(util.RandomUserGen()),
 				Email:    ToBeNullString(util.RandomEmail()),
