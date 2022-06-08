@@ -110,6 +110,90 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (GetUserRow, error) {
 	return i, err
 }
 
+const listConvFromUser = `-- name: ListConvFromUser :many
+SELECT 
+"Conversation".id,"Conversation".name
+FROM
+"Users"
+INNER JOIN "user_conversation" on "Users".id = "user_conversation".user_id
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
+WHERE "Users".id = $1
+`
+
+func (q *Queries) ListConvFromUser(ctx context.Context, id int64) ([]Conversation, error) {
+	rows, err := q.db.QueryContext(ctx, listConvFromUser, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Conversation{}
+	for rows.Next() {
+		var i Conversation
+		if err := rows.Scan(&i.ID, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserMessages = `-- name: ListUserMessages :many
+SELECT 
+"Conversation".name as conversation_name,"Message".from,"Message".content as message_content,"Message".created_at,
+"user_conversation".conv_id, "Message".id as message_id
+FROM
+"Users"
+INNER JOIN "user_conversation" on "Users".id = "user_conversation".user_id
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
+inner JOIN "Message" on "Conversation".id = "Message".conv_id
+Where "Users".id = $1
+`
+
+type ListUserMessagesRow struct {
+	ConversationName sql.NullString `json:"conversationName"`
+	From             string         `json:"from"`
+	MessageContent   string         `json:"messageContent"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	ConvID           int64          `json:"convID"`
+	MessageID        int64          `json:"messageID"`
+}
+
+func (q *Queries) ListUserMessages(ctx context.Context, id int64) ([]ListUserMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserMessages, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUserMessagesRow{}
+	for rows.Next() {
+		var i ListUserMessagesRow
+		if err := rows.Scan(
+			&i.ConversationName,
+			&i.From,
+			&i.MessageContent,
+			&i.CreatedAt,
+			&i.ConvID,
+			&i.MessageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT id,
   name,

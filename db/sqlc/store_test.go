@@ -27,7 +27,7 @@ func TestSendMessage(t *testing.T) {
 		go func() {
 			result, err := store.SendMessage(
 				context.Background(),
-				SendMessageParams{UserID: sender.ID, CreateMessageParams: &message},
+				SendMessageParams{UserID: sender.ID, CreateMessageParams: message},
 			)
 			errs <- err
 			res <- result

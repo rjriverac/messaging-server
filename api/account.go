@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
@@ -13,6 +14,15 @@ type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	HashedPw string `json:"hashedPw" binding:"required"`
+}
+
+type CreateUserReturn struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Image     []byte    `json:"image"`
+	Status    []byte    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
@@ -30,16 +40,42 @@ func (server *Server) createUser(ctx *gin.Context) {
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
-	ctx.JSON(http.StatusOK, user)
+
+	istr := NullString(user.Image)
+	str, _ := istr.MarshalNullStr()
+	ststr := NullString(user.Status)
+	ustr, _ := ststr.MarshalNullStr()
+
+	ret := CreateUserReturn{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Image:     str,
+		Status:    ustr,
+		CreatedAt: user.CreatedAt,
+	}
+
+	ctx.JSON(http.StatusOK, ret)
 }
 
 type GetUserRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
+type GetUserReturn struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Image     string    `json:"image"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 func (server *Server) getUser(ctx *gin.Context) {
 	var req GetUserRequest
+
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -54,12 +90,41 @@ func (server *Server) getUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
+	ret := GetUserReturn{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+	nullStrs := map[string]NullString{
+		"Image":  NullString(user.Image),
+		"Status": NullString(user.Status),
+	}
+
+	for key, nstring := range nullStrs {
+		str := nstring.NullStrToString()
+		switch key {
+		case "Image":
+			ret.Image = str
+		case "Status":
+			ret.Status = str
+		}
+	}
+
+	ctx.JSON(http.StatusOK, ret)
 }
 
 type ListUserRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=5,max=20"`
+}
+
+type ListUserAcc struct {
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Image  string `json:"image"`
+	Status string `json:"status"`
 }
 
 func (server *Server) listUser(ctx *gin.Context) {
@@ -80,7 +145,31 @@ func (server *Server) listUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	ctx.JSON(http.StatusOK, users)
+
+	var listRet []ListUserAcc
+	for _, user := range users {
+		item := ListUserAcc{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+		}
+		nullStrs := map[string]NullString{
+			"Image":  NullString(user.Image),
+			"Status": NullString(user.Status),
+		}
+		for key, nstring := range nullStrs {
+			str := nstring.NullStrToString()
+			switch key {
+			case "Image":
+				item.Image = str
+			case "Status":
+				item.Status = str
+			}
+		}
+		listRet = append(listRet, item)
+
+	}
+	ctx.JSON(http.StatusOK, listRet)
 }
 
 type ToBeNullString string
@@ -109,6 +198,15 @@ type UpdateUserID struct {
 	ID int64 `form:"uid" binding:"required,min=1"`
 }
 
+type UpdateUserReturn struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Image     string    `json:"image"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 func (server *Server) updateUser(g *gin.Context) {
 	var req UpdateUserRequest
 	var uid UpdateUserID
@@ -134,6 +232,27 @@ func (server *Server) updateUser(g *gin.Context) {
 		g.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	g.JSON(http.StatusAccepted, user)
+	nullStrs := map[string]NullString{
+		"Image":  NullString(user.Image),
+		"Status": NullString(user.Status),
+	}
+	ret := UpdateUserReturn{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+
+	for key, nstring := range nullStrs {
+		str := nstring.NullStrToString()
+		switch key {
+		case "Image":
+			ret.Image = str
+		case "Status":
+			ret.Status = str
+		}
+	}
+
+	g.JSON(http.StatusAccepted, ret)
 
 }
