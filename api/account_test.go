@@ -179,14 +179,14 @@ func requireUserBody(t *testing.T, res *bytes.Buffer, user db.GetUserRow) {
 	data, err := ioutil.ReadAll(res)
 	require.NoError(t, err)
 
-	var responseAcc db.GetUserRow
+	var responseAcc GetUserReturn
 	err = json.Unmarshal(data, &responseAcc)
 	require.NoError(t, err)
 	require.Equal(t, responseAcc.Email, user.Email)
 	require.Equal(t, responseAcc.ID, user.ID)
-	require.Equal(t, responseAcc.Image, user.Image)
+	require.Equal(t, responseAcc.Image, user.Image.String)
 	require.Equal(t, responseAcc.Name, user.Name)
-	require.Equal(t, responseAcc.Status, user.Status)
+	require.Equal(t, responseAcc.Status, user.Status.String)
 	require.WithinDuration(t, responseAcc.CreatedAt, user.CreatedAt, time.Second)
 }
 
@@ -221,18 +221,18 @@ func listMatch(t *testing.T, res *bytes.Buffer, list []db.ListUsersRow) {
 	data, err := ioutil.ReadAll(res)
 	require.NoError(t, err)
 
-	var retrievedList []db.ListUsersRow
+	var retrievedList []ListUserAcc
 	err = json.Unmarshal(data, &retrievedList)
 	require.NoError(t, err)
 	require.Equal(t, len(list), len(retrievedList))
 	for _, row := range list {
 		for _, qrow := range retrievedList {
-			if row == qrow {
+			if row.ID == qrow.ID {
 				require.Equal(t, row.Email, qrow.Email)
 				require.Equal(t, row.ID, qrow.ID)
-				require.Equal(t, row.Image, qrow.Image)
+				require.Equal(t, row.Image.String, qrow.Image)
 				require.Equal(t, row.Name, qrow.Name)
-				require.Equal(t, row.Status, qrow.Status)
+				require.Equal(t, row.Status.String, qrow.Status)
 			}
 		}
 	}

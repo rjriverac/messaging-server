@@ -91,9 +91,9 @@ func (server *Server) getUser(ctx *gin.Context) {
 		return
 	}
 	ret := GetUserReturn{
-		ID: user.ID,
-		Name: user.Name,
-		Email: user.Email,
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
 		CreatedAt: user.CreatedAt,
 	}
 	nullStrs := map[string]NullString{
@@ -110,13 +110,21 @@ func (server *Server) getUser(ctx *gin.Context) {
 			ret.Status = str
 		}
 	}
-	
+
 	ctx.JSON(http.StatusOK, ret)
 }
 
 type ListUserRequest struct {
 	PageID   int32 `form:"page_id" binding:"required,min=1"`
 	PageSize int32 `form:"page_size" binding:"required,min=5,max=20"`
+}
+
+type ListUserAcc struct {
+	ID     int64  `json:"id"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Image  string `json:"image"`
+	Status string `json:"status"`
 }
 
 func (server *Server) listUser(ctx *gin.Context) {
@@ -137,7 +145,31 @@ func (server *Server) listUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	ctx.JSON(http.StatusOK, users)
+
+	var listRet []ListUserAcc
+	for _, user := range users {
+		item := ListUserAcc{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+		}
+		nullStrs := map[string]NullString{
+			"Image":  NullString(user.Image),
+			"Status": NullString(user.Status),
+		}
+		for key, nstring := range nullStrs {
+			str := nstring.NullStrToString()
+			switch key {
+			case "Image":
+				item.Image = str
+			case "Status":
+				item.Status = str
+			}
+		}
+		listRet = append(listRet, item)
+
+	}
+	ctx.JSON(http.StatusOK, listRet)
 }
 
 type ToBeNullString string
