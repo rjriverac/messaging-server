@@ -64,8 +64,18 @@ type GetUserRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
+type GetUserReturn struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Image     string    `json:"image"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 func (server *Server) getUser(ctx *gin.Context) {
 	var req GetUserRequest
+
 	if err := ctx.ShouldBindUri(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -80,7 +90,28 @@ func (server *Server) getUser(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
+	ret := GetUserReturn{
+		ID: user.ID,
+		Name: user.Name,
+		Email: user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+	nullStrs := map[string]NullString{
+		"Image":  NullString(user.Image),
+		"Status": NullString(user.Status),
+	}
+
+	for key, nstring := range nullStrs {
+		str := nstring.NullStrToString()
+		switch key {
+		case "Image":
+			ret.Image = str
+		case "Status":
+			ret.Status = str
+		}
+	}
+	
+	ctx.JSON(http.StatusOK, ret)
 }
 
 type ListUserRequest struct {
