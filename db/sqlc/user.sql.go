@@ -20,12 +20,7 @@ INSERT INTO "Users" (
     status
   )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id,
-  name,
-  email,
-  image,
-  status,
-  created_at
+RETURNING id, name, email, hashed_pw, image, status, created_at
 `
 
 type CreateUserParams struct {
@@ -36,16 +31,7 @@ type CreateUserParams struct {
 	Status   sql.NullString `json:"status"`
 }
 
-type CreateUserRow struct {
-	ID        int64          `json:"id"`
-	Name      string         `json:"name"`
-	Email     string         `json:"email"`
-	Image     sql.NullString `json:"image"`
-	Status    sql.NullString `json:"status"`
-	CreatedAt time.Time      `json:"createdAt"`
-}
-
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Name,
 		arg.Email,
@@ -53,11 +39,12 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		arg.Image,
 		arg.Status,
 	)
-	var i CreateUserRow
+	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Email,
+		&i.HashedPw,
 		&i.Image,
 		&i.Status,
 		&i.CreatedAt,

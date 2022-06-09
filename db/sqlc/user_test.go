@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createRandomUser(t *testing.T) CreateUserRow {
+func createRandomUser(t *testing.T) User {
 	hashedPw, err := util.HashPassword(util.RandomString(10))
 	require.NoError(t, err)
 	arg := CreateUserParams{

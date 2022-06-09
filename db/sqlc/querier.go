@@ -12,7 +12,7 @@ import (
 type Querier interface {
 	CreateConversation(ctx context.Context, name sql.NullString) (Conversation, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
-	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUser_conversation(ctx context.Context, arg CreateUser_conversationParams) (UserConversation, error)
 	DeleteConversation(ctx context.Context, id int64) error
 	DeleteMessage(ctx context.Context, id int64) error

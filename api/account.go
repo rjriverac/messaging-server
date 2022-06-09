@@ -29,12 +29,10 @@ type CreateUserReturn struct {
 func (server *Server) createUser(ctx *gin.Context) {
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		fmt.Printf("request in binding:%v\n", req)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
-	fmt.Printf("request prior to hash:%v\n", req)
 	hashedPw, err := util.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
