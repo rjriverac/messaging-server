@@ -53,7 +53,6 @@ func TestGetUser(t *testing.T) {
 	require.WithinDuration(t, user.CreatedAt, user2.CreatedAt, time.Second)
 }
 
-//! fix PW being passed in as empty string in update func
 func TestUpdateUser(t *testing.T) {
 	user := createRandomUser(t)
 

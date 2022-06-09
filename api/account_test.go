@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	mockdb "github.com/rjriverac/messaging-server/db/mock"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
@@ -43,6 +44,119 @@ func (e eqCreateUserParamsMatcher) String() string {
 }
 func EqCreateUserParams(arg db.CreateUserParams, password string) gomock.Matcher {
 	return eqCreateUserParamsMatcher{arg, password}
+}
+
+func TestCreateUser(t *testing.T) {
+
+	user, password := randomDBUser(t)
+	user.Email = fmt.Sprint(util.RandomString(5), "@email.com")
+	fmt.Printf("user: %v \n password: %v\n hashedPw: %v\n", user, password, user.HashedPw)
+
+	anotherUser := db.CreateUserRow{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		Image:     sql.NullString{Valid: false},
+		Status:    sql.NullString{Valid: false},
+		CreatedAt: user.CreatedAt,
+	}
+
+	testCases := []struct {
+		name       string
+		body       gin.H
+		buildStubs func(store *mockdb.MockStore)
+		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder)
+	}{
+		{
+			name: "OK",
+			body: gin.H{
+				"name":     user.Name,
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				arg := db.CreateUserParams{
+					Name:   user.Name,
+					Email:  user.Email,
+					Image:  user.Image,
+					Status: user.Status,
+				}
+				store.EXPECT().
+					CreateUser(gomock.Any(), EqCreateUserParams(arg, password)).
+					Times(1).
+					Return(anotherUser, nil)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusOK, recorder.Code)
+			},
+		}, {
+			name: "int server err",
+			body: gin.H{
+				"name":     user.Name,
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(1).Return(db.CreateUserRow{}, sql.ErrConnDone)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, recorder.Code)
+			},
+		},
+		{
+			name: "bad request",
+			body: gin.H{
+				"name":     user.Name,
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		},
+	}
+
+	for i := range testCases {
+		tc := testCases[i]
+
+		t.Run(tc.name, func(t *testing.T) {
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			store := mockdb.NewMockStore(ctrl)
+			tc.buildStubs(store)
+
+			server := NewServer(store)
+			recorder := httptest.NewRecorder()
+			url := "/account"
+
+			marshalled, err := json.Marshal(tc.body)
+			require.NoError(t, err)
+
+			fmt.Printf("marshalled:%v\n", string(marshalled))
+
+			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(marshalled))
+
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(request.Body)
+			newStr := buf.String()
+
+			fmt.Printf("request:%v", newStr)
+
+			require.NoError(t, err)
+
+			server.router.ServeHTTP(recorder, request)
+			tc.checkRes(t, recorder)
+		})
+	}
 }
 
 func TestGetUser(t *testing.T) {
@@ -282,101 +396,6 @@ func listMatch(t *testing.T, res *bytes.Buffer, list []db.ListUsersRow) {
 				require.Equal(t, row.Status.String, qrow.Status)
 			}
 		}
-	}
-}
-func TestCreateUser(t *testing.T) {
-
-	user, password := randomDBUser(t)
-	fmt.Printf("user: %v \n password: %v\n hashedPw: %v\n", user, password, user.HashedPw)
-
-	anotherUser := db.CreateUserRow{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Image:     sql.NullString{Valid: false},
-		Status:    sql.NullString{Valid: false},
-		CreatedAt: user.CreatedAt,
-	}
-
-	testCases := []struct {
-		name       string
-		params     db.CreateUserParams
-		buildStubs func(store *mockdb.MockStore, params db.CreateUserParams)
-		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder)
-	}{
-		{
-			name: "OK",
-			params: db.CreateUserParams{
-				Name:  user.Name,
-				Email: user.Email,
-			},
-			buildStubs: func(store *mockdb.MockStore, params db.CreateUserParams) {
-				fmt.Printf("Params in stub func: %v\n", params)
-				store.EXPECT().
-					CreateUser(gomock.Any(), EqCreateUserParams(params, password)).
-					Times(1).
-					Return(anotherUser, nil)
-			},
-			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusOK, recorder.Code)
-			},
-		}, {
-			name: "int server err",
-			params: db.CreateUserParams{
-				Name:     util.RandomUserGen(),
-				Email:    util.RandomEmail(),
-				HashedPw: util.RandomHashedPW(),
-			},
-			buildStubs: func(store *mockdb.MockStore, params db.CreateUserParams) {
-				store.EXPECT().
-					CreateUser(gomock.Any(), params).
-					Times(1).Return(anotherUser, sql.ErrConnDone)
-			},
-			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusInternalServerError, recorder.Code)
-			},
-		},
-		{
-			name: "bad request",
-			params: db.CreateUserParams{
-				Name:     "",
-				Email:    "",
-				HashedPw: "",
-			},
-			buildStubs: func(store *mockdb.MockStore, params db.CreateUserParams) {
-				store.EXPECT().
-					CreateUser(gomock.Any(), gomock.Any()).
-					Times(0)
-			},
-			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
-			},
-		},
-	}
-
-	for i := range testCases {
-		tc := testCases[i]
-
-		t.Run(tc.name, func(t *testing.T) {
-
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
-
-			store := mockdb.NewMockStore(ctrl)
-			tc.buildStubs(store, tc.params)
-
-			server := NewServer(store)
-			recorder := httptest.NewRecorder()
-			url := "/account"
-
-			marshalled, _ := json.Marshal(tc.params)
-
-			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(marshalled))
-			require.NoError(t, err)
-
-			server.router.ServeHTTP(recorder, request)
-			tc.checkRes(t, recorder)
-		})
 	}
 }
 

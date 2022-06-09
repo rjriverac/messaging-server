@@ -12,9 +12,9 @@ import (
 )
 
 type CreateUserRequest struct {
-	Name     string `json:"name" binding:"required,alphanum"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 type CreateUserReturn struct {
@@ -29,10 +29,12 @@ type CreateUserReturn struct {
 func (server *Server) createUser(ctx *gin.Context) {
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("request in binding:%v\n", req)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
+	fmt.Printf("request prior to hash:%v\n", req)
 	hashedPw, err := util.HashPassword(req.Password)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
