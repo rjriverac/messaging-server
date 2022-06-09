@@ -7,14 +7,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lib/pq"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
 	"github.com/rjriverac/messaging-server/util"
 )
 
 type CreateUserRequest struct {
 	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
 }
 
 type CreateUserReturn struct {
@@ -46,6 +47,14 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
+
+		if pqErr, ok := err.(*pq.Error); ok {
+			switch pqErr.Code.Name() {
+			case "unique_violation":
+				ctx.JSON(http.StatusForbidden, errorResponse(err))
+				return
+			}
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}

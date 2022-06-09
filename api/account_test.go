@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	mockdb "github.com/rjriverac/messaging-server/db/mock"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
 	"github.com/rjriverac/messaging-server/util"
@@ -100,6 +101,52 @@ func TestCreateUser(t *testing.T) {
 				"name":     user.Name,
 				"email":    user.Email,
 				"password": 3,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkRes: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		}, {
+			name: "duplicate email",
+			body: gin.H{
+				"name":     user.Name,
+				"email":    user.Email,
+				"password": password,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.User{}, &pq.Error{Code: "23505"})
+			},
+			checkRes: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusForbidden, recorder.Code)
+			},
+		}, {
+			name: "short password",
+			body: gin.H{
+				"name":     user.Name,
+				"email":    user.Email,
+				"password": "123",
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					CreateUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			checkRes: func(recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, recorder.Code)
+			},
+		}, {
+			name: "invalid email",
+			body: gin.H{
+				"name":     user.Name,
+				"email":    "email-com",
+				"password": password,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
