@@ -7,12 +7,7 @@ INSERT INTO "Users" (
     status
   )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id,
-  name,
-  email,
-  image,
-  status,
-  created_at;
+RETURNING *;
 -- name: GetUser :one
 SELECT id,
   name,

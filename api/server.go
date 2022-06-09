@@ -16,18 +16,18 @@ func NewServer(store db.Store) *Server {
 	server := &Server{store: store}
 	router := gin.Default()
 
-	if v,ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterStructValidation(validRequest,UpdateUserRequest{})
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterStructValidation(validRequest, UpdateUserRequest{})
 	}
 
-	router.POST("/account", server.createUser)
+	router.POST("/account/", server.createUser)
 	router.GET("/account/:id", server.getUser)
-	router.GET("/account", server.listUser)
+	router.GET("/account/", server.listUser)
 	router.PUT("/account/", server.updateUser)
 
-	router.POST("/message",server.sendMessage)
+	router.POST("/message", server.sendMessage)
 
-	router.GET("/conversation",server.getConvos)
+	router.GET("/conversation", server.getConvos)
 
 	server.router = router
 	return server

@@ -1,7 +1,7 @@
 CREATE TABLE "Users" (
   "id" bigserial UNIQUE PRIMARY KEY,
   "name" varchar NOT NULL,
-  "email" varchar NOT NULL,
+  "email" varchar UNIQUE NOT NULL,
   "hashed_pw" varchar NOT NULL,
   "image" varchar,
   "status" varchar,
