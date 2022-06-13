@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createConversation = `-- name: CreateConversation :one
@@ -45,6 +46,50 @@ func (q *Queries) GetConversation(ctx context.Context, id int64) (Conversation, 
 	var i Conversation
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
+}
+
+const listConvMessages = `-- name: ListConvMessages :many
+SELECT 
+"Message".from,"Message".content as message_content,"Message".created_at, "Message".id as message_id
+FROM
+"Conversation"
+INNER JOIN "Message" on "Conversation".id = "Message".conv_id
+Where "Conversation".id = $1
+`
+
+type ListConvMessagesRow struct {
+	From           string    `json:"from"`
+	MessageContent string    `json:"messageContent"`
+	CreatedAt      time.Time `json:"createdAt"`
+	MessageID      int64     `json:"messageID"`
+}
+
+func (q *Queries) ListConvMessages(ctx context.Context, id int64) ([]ListConvMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listConvMessages, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListConvMessagesRow{}
+	for rows.Next() {
+		var i ListConvMessagesRow
+		if err := rows.Scan(
+			&i.From,
+			&i.MessageContent,
+			&i.CreatedAt,
+			&i.MessageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listConversations = `-- name: ListConversations :many

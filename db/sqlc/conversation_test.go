@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/rjriverac/messaging-server/util"
 	"github.com/stretchr/testify/require"
@@ -78,4 +79,32 @@ func TestDeleteConv(t *testing.T) {
 	require.Error(t, errnrow)
 	require.Empty(t, conv2)
 	require.EqualError(t, errnrow, sql.ErrNoRows.Error())
+}
+
+func TestGetConvMessages(t *testing.T) {
+	conv1 := createRandConv(t)
+
+	for i := 0; i < 20; i++ {
+		arg := CreateMessageParams{
+			From:    util.RandomString(10),
+			Content: util.RandomString(50),
+			ConvID:  conv1.ID,
+		}
+		_, err := testQueries.CreateMessage(context.Background(), arg)
+		require.NoError(t, err)
+	}
+	list, err := testQueries.ListConvMessages(context.Background(), conv1.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, list)
+
+	now := time.Now()
+
+	for _, msg := range list {
+
+		require.NotEmpty(t, msg)
+		require.Len(t, msg.From, 10)
+		require.Len(t, msg.MessageContent, 50)
+		require.NotZero(t, msg.MessageID)
+		require.WithinDuration(t, now, msg.CreatedAt, time.Second)
+	}
 }

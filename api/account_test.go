@@ -170,7 +170,7 @@ func TestCreateUser(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := "/account/"
 
@@ -266,7 +266,7 @@ func TestGetUser(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := fmt.Sprintf("/account/%d", tc.uID)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
@@ -337,7 +337,7 @@ func TestListUsers(t *testing.T) {
 
 			tc.buildStubs(store, tc.params)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/account/?page_id=%d&page_size=%d", tc.params.Offset, tc.params.Limit)
@@ -555,7 +555,7 @@ func TestUpdateUser(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store, tc.params, tc.uId)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := fmt.Sprintf("/account/?uid=%v", tc.uId)
 

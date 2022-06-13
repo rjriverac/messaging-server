@@ -1,36 +1,39 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
+	"github.com/rjriverac/messaging-server/token"
+	"github.com/rjriverac/messaging-server/util"
 )
 
 type Server struct {
-	store  db.Store
-	router *gin.Engine
+	config     util.Config
+	store      db.Store
+	tokenMaker token.Maker
+	router     *gin.Engine
 }
 
-func NewServer(store db.Store) *Server {
-	server := &Server{store: store}
-	router := gin.Default()
+func NewServer(config util.Config, store db.Store) (*Server, error) {
+	tokenMaker, err := token.NewPasetoMaker(config.TokenSymmetricKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create token:%w", err)
+	}
+	server := &Server{
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
+	}
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterStructValidation(validRequest, UpdateUserRequest{})
 	}
-
-	router.POST("/account/", server.createUser)
-	router.GET("/account/:id", server.getUser)
-	router.GET("/account/", server.listUser)
-	router.PUT("/account/", server.updateUser)
-
-	router.POST("/message", server.sendMessage)
-
-	router.GET("/conversation", server.getConvos)
-
-	server.router = router
-	return server
+	server.createRoutes()
+	return server, nil
 }
 
 func errorResponse(err error) gin.H {
@@ -39,4 +42,23 @@ func errorResponse(err error) gin.H {
 
 func (server *Server) StartServer(addr string) error {
 	return server.router.Run(addr)
+}
+
+func (server *Server) createRoutes() {
+	router := gin.Default()
+	router.POST("/account/", server.createUser)
+	router.POST("/account/login", server.loginUser)
+
+	authRoutes := router.Group("/").Use(authMWare(server.tokenMaker))
+
+	authRoutes.GET("/account/:id", server.getUser)
+	authRoutes.GET("/account/", server.listUser)
+	authRoutes.PUT("/account/", server.updateUser)
+
+	authRoutes.POST("/message", server.sendMessage)
+
+	authRoutes.GET("/conversation", server.getConvos)
+	authRoutes.GET("/conversation/:id", server.detailConvo)
+
+	server.router = router
 }

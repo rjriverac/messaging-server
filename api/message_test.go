@@ -93,7 +93,7 @@ func TestSendMessage(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store, tc.arg)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := "/message"
 			marshalled, _ := json.Marshal(tc.arg)
