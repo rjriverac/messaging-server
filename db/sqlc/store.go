@@ -70,6 +70,11 @@ func (store *SQLStore) SendMessage(ctx context.Context, arg SendMessageParams) (
 			}
 		}
 
+		/*
+			todo add query to db to get user and add
+			todo the name to the message params here vs from the api side
+		*/
+
 		msg, err := q.CreateMessage(ctx, CreateMessageParams{
 			From:    arg.From,
 			Content: arg.Content,

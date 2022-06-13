@@ -10,9 +10,9 @@ import (
 	"github.com/rjriverac/messaging-server/token"
 )
 
-type getConversationRequest struct {
-	ID int64 `uri:"id" binding:"required,min=1"`
-}
+// type getConversationRequest struct {
+// 	ID int64 `uri:"id" binding:"required,min=1"`
+// }
 
 type NullString sql.NullString
 
