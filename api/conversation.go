@@ -10,10 +10,6 @@ import (
 	"github.com/rjriverac/messaging-server/token"
 )
 
-// type getConversationRequest struct {
-// 	ID int64 `uri:"id" binding:"required,min=1"`
-// }
-
 type NullString sql.NullString
 
 func (s *NullString) MarshalNullStr() ([]byte, error) {
@@ -35,12 +31,7 @@ type ConversationReturn struct {
 }
 
 func (server *Server) getConvos(g *gin.Context) {
-	// var req getConversationRequest
 	var ret []ConversationReturn
-	// if err := g.ShouldBindJSON(&req); err != nil {
-	// 	g.JSON(http.StatusBadRequest, errorResponse(err))
-	// 	return
-	// }
 
 	authPayload := g.MustGet(authPayloadKey).(*token.Payload)
 
@@ -51,6 +42,7 @@ func (server *Server) getConvos(g *gin.Context) {
 			return
 		}
 		g.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
 	}
 	for _, conv := range convs {
 		nstr := NullString(conv.Name)
