@@ -104,10 +104,10 @@ func (server *Server) getUser(ctx *gin.Context) {
 	}
 
 	auth := ctx.MustGet(authPayloadKey).(*token.Payload)
-
 	if auth.User != req.ID {
 		err := errors.New("access to requested information not allowed")
 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
 	}
 
 	user, err := server.store.GetUser(ctx, req.ID)

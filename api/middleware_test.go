@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
 	"testing"
 	"time"
 
@@ -99,10 +98,10 @@ func TestAuthMWare(t *testing.T) {
 			tc.setupAuth(t, request, server.tokenMaker)
 			server.router.ServeHTTP(recorder, request)
 
-			dump, err := httputil.DumpRequest(request, false)
-			require.NoError(t, err)
+			// dump, err := httputil.DumpRequest(request, false)
+			// require.NoError(t, err)
 
-			fmt.Printf("request dump:%v\n", string(dump))
+			// fmt.Printf("request dump:%v\n", string(dump))
 
 			tc.checkRes(t, recorder)
 		})

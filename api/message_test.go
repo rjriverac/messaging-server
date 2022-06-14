@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/http/httputil"
 	"testing"
 	"time"
 
@@ -42,21 +40,14 @@ func TestSendMessage(t *testing.T) {
 			"convID":  msgParams.ConvID,
 		},
 		buildStubs: func(store *mockdb.MockStore) {
-			// store.EXPECT().
-			// 	SendMessage(gomock.Any(), gomock.Any()).
-			// 	Times(1).
-			// 	Return(result, nil)
-			gomock.InOrder(
-				store.EXPECT().SendMessage(gomock.Any(), db.SendMessageParams{
-					CreateMessageParams: db.CreateMessageParams{
-						From:    user.Name,
-						Content: msgParams.Content,
-						ConvID:  msgParams.ConvID,
-					},
-					UserID: user.ID,
-				}).Times(1).Return(result, nil),
-				store.EXPECT().GetUser(gomock.Any(), gomock.Any()).Times(1),
-			)
+			store.EXPECT().
+				SendMessage(gomock.Any(), gomock.Eq(db.SendMessageParams{
+					Content: msgParams.Content,
+					ConvID:  msgParams.ConvID,
+					UserID:  user.ID,
+				})).
+				Times(1).
+				Return(result, nil)
 
 		},
 		checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
@@ -65,7 +56,7 @@ func TestSendMessage(t *testing.T) {
 	}, {
 		name: "Bad Request",
 		arg: gin.H{
-			"content": 0,
+			"content": "",
 			"convID":  msgParams.ConvID,
 		},
 		setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
@@ -84,7 +75,10 @@ func TestSendMessage(t *testing.T) {
 		setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
 			addAuth(t, request, tokenMaker, authTypeBearer, user.ID, time.Minute)
 		},
-		arg: gin.H{},
+		arg: gin.H{
+			"content": msgParams.Content,
+			"convID":  msgParams.ConvID,
+		},
 		buildStubs: func(store *mockdb.MockStore) {
 			store.EXPECT().
 				SendMessage(gomock.Any(), gomock.Any()).
@@ -108,15 +102,15 @@ func TestSendMessage(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := "/message"
-			marshalled, _ := json.Marshal(msgParams)
+			marshalled, _ := json.Marshal(tc.arg)
 
 			// fmt.Printf("marshalled request:%c", marshalled)
 
 			request, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(marshalled))
 
-			dump, _ := httputil.DumpRequest(request, false)
+			// dump, _ := httputil.DumpRequest(request, true)
 
-			fmt.Printf("dumped request:%v\n", string(dump))
+			// fmt.Printf("dumped request:%v\n", string(dump))
 			require.NoError(t, err)
 			tc.setupAuth(t, request, server.tokenMaker)
 

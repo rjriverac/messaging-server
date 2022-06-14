@@ -27,7 +27,11 @@ func TestSendMessage(t *testing.T) {
 		go func() {
 			result, err := store.SendMessage(
 				context.Background(),
-				SendMessageParams{UserID: sender.ID, CreateMessageParams: message},
+				SendMessageParams{
+					UserID:  sender.ID,
+					Content: message.Content,
+					ConvID:  message.ConvID,
+				},
 			)
 			errs <- err
 			res <- result
@@ -47,6 +51,6 @@ func TestSendMessage(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = store.GetUser_conversation(context.Background(), GetUser_conversationParams{UserID: sender.ID, ConvID: message.ConvID})
-		require.NoError(t,err)
+		require.NoError(t, err)
 	}
 }

@@ -41,8 +41,9 @@ func (store *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) erro
 }
 
 type SendMessageParams struct {
-	CreateMessageParams
-	UserID int64 `json:"from_id"`
+	Content string `json:"content"`
+	ConvID  int64  `json:"convID"`
+	UserID  int64  `json:"from_id"`
 }
 
 type SendResult struct {
@@ -69,14 +70,16 @@ func (store *SQLStore) SendMessage(ctx context.Context, arg SendMessageParams) (
 				})
 			}
 		}
-
+		user, err := q.GetUser(ctx, arg.UserID)
+		if err != nil {
+			return err
+		}
 		/*
 			todo add query to db to get user and add
 			todo the name to the message params here vs from the api side
 		*/
-
 		msg, err := q.CreateMessage(ctx, CreateMessageParams{
-			From:    arg.From,
+			From:    user.Name,
 			Content: arg.Content,
 			ConvID:  arg.ConvID,
 		})
