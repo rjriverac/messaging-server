@@ -528,7 +528,7 @@ func TestUpdateUser(t *testing.T) {
 				requireUserUpdateBody(t, recorder.Body, params, uID)
 			},
 		}, {
-			name: "bad request UID",
+			name: "token error",
 			uId:  0,
 			params: UpdateUserRequest{
 				Name:     ToBeNullString(util.RandomUserGen()),
@@ -538,7 +538,7 @@ func TestUpdateUser(t *testing.T) {
 				HashedPw: ToBeNullString(""),
 			},
 			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
-				addAuth(t, request, tokenMaker, authTypeBearer, 0, time.Minute)
+				addAuth(t, request, tokenMaker, "token", 0, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore, params UpdateUserRequest, uID int64) {
 				store.EXPECT().
@@ -546,7 +546,7 @@ func TestUpdateUser(t *testing.T) {
 					Times(0)
 			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder, params UpdateUserRequest, uID int64) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		}, {
 			name:   "bad request json",
@@ -613,7 +613,7 @@ func TestUpdateUser(t *testing.T) {
 
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
-			url := fmt.Sprintf("/account/?uid=%v", tc.uId)
+			url := "/account/"
 
 			marshalled, _ := json.Marshal(tc.params)
 			request, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(marshalled))
