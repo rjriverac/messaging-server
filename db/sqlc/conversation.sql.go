@@ -52,10 +52,18 @@ const listConvMessages = `-- name: ListConvMessages :many
 SELECT 
 "Message".from,"Message".content as message_content,"Message".created_at, "Message".id as message_id
 FROM
-"Conversation"
+"user_conversation"
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
 INNER JOIN "Message" on "Conversation".id = "Message".conv_id
-Where "Conversation".id = $1
+Where
+"user_conversation".conv_id = $1
+And "user_conversation".user_id=$2
 `
+
+type ListConvMessagesParams struct {
+	ConvID int64 `json:"convID"`
+	UserID int64 `json:"userID"`
+}
 
 type ListConvMessagesRow struct {
 	From           string    `json:"from"`
@@ -64,8 +72,8 @@ type ListConvMessagesRow struct {
 	MessageID      int64     `json:"messageID"`
 }
 
-func (q *Queries) ListConvMessages(ctx context.Context, id int64) ([]ListConvMessagesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listConvMessages, id)
+func (q *Queries) ListConvMessages(ctx context.Context, arg ListConvMessagesParams) ([]ListConvMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listConvMessages, arg.ConvID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}

@@ -28,6 +28,7 @@ func TestGetConvos(t *testing.T) {
 			Name: util.NullStrGen(6),
 		}
 	}
+	convs[4].Name = sql.NullString{Valid: false}
 
 	testCases := []struct {
 		name       string
@@ -94,7 +95,6 @@ func TestGetConvos(t *testing.T) {
 			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := "/conversation"
-			// marshalled, _ := json.Marshal()
 
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 
@@ -107,7 +107,3 @@ func TestGetConvos(t *testing.T) {
 		})
 	}
 }
-
-// func randomConvo() db.Conversation {
-// 	return db.Conversation{}
-// }

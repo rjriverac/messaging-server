@@ -272,7 +272,7 @@ func (mr *MockStoreMockRecorder) ListConvFromUser(arg0, arg1 interface{}) *gomoc
 }
 
 // ListConvMessages mocks base method.
-func (m *MockStore) ListConvMessages(arg0 context.Context, arg1 int64) ([]db.ListConvMessagesRow, error) {
+func (m *MockStore) ListConvMessages(arg0 context.Context, arg1 db.ListConvMessagesParams) ([]db.ListConvMessagesRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListConvMessages", arg0, arg1)
 	ret0, _ := ret[0].([]db.ListConvMessagesRow)

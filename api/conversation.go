@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	db "github.com/rjriverac/messaging-server/db/sqlc"
 	"github.com/rjriverac/messaging-server/token"
 )
 
@@ -66,16 +67,12 @@ func (server *Server) detailConvo(g *gin.Context) {
 	}
 	auth := g.MustGet(authPayloadKey).(*token.Payload)
 
-	if _, err := server.store.ListUser_conversationByUser(context.Background(), auth.User); err != nil {
-		if err == sql.ErrNoRows {
-			g.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		g.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+	arg := db.ListConvMessagesParams{
+		ConvID: req.ID,
+		UserID: auth.User,
 	}
 
-	messages, err := server.store.ListConvMessages(context.Background(), req.ID)
+	messages, err := server.store.ListConvMessages(context.Background(), arg)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			g.JSON(http.StatusNotFound, errorResponse(err))

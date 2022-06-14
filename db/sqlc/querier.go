@@ -26,7 +26,7 @@ type Querier interface {
 	GetUser_conv_by_id(ctx context.Context, id int64) (UserConversation, error)
 	GetUser_conversation(ctx context.Context, arg GetUser_conversationParams) (UserConversation, error)
 	ListConvFromUser(ctx context.Context, id int64) ([]Conversation, error)
-	ListConvMessages(ctx context.Context, id int64) ([]ListConvMessagesRow, error)
+	ListConvMessages(ctx context.Context, arg ListConvMessagesParams) ([]ListConvMessagesRow, error)
 	ListConversations(ctx context.Context, arg ListConversationsParams) ([]Conversation, error)
 	ListMessageByUser(ctx context.Context, from string) ([]Message, error)
 	ListUserMessages(ctx context.Context, id int64) ([]ListUserMessagesRow, error)

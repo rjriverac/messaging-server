@@ -83,6 +83,7 @@ func TestDeleteConv(t *testing.T) {
 
 func TestGetConvMessages(t *testing.T) {
 	conv1 := createRandConv(t)
+	user := createRandomUser(t)
 
 	for i := 0; i < 20; i++ {
 		arg := CreateMessageParams{
@@ -93,9 +94,19 @@ func TestGetConvMessages(t *testing.T) {
 		_, err := testQueries.CreateMessage(context.Background(), arg)
 		require.NoError(t, err)
 	}
-	list, err := testQueries.ListConvMessages(context.Background(), conv1.ID)
+
+	_, err := testQueries.CreateUser_conversation(context.Background(), CreateUser_conversationParams{user.ID, conv1.ID})
+	require.NoError(t, err)
+
+	arg := ListConvMessagesParams{
+		ConvID: conv1.ID,
+		UserID: user.ID,
+	}
+
+	list, err := testQueries.ListConvMessages(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, list)
+	require.Len(t, list, 20)
 
 	now := time.Now()
 
