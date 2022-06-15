@@ -83,3 +83,7 @@ func (server *Server) detailConvo(g *gin.Context) {
 	}
 	g.JSON(http.StatusOK, messages)
 }
+
+func (server *Server) createConvo(g *gin.Context) {
+
+}

@@ -36,6 +36,21 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
+// CreateConv mocks base method.
+func (m *MockStore) CreateConv(arg0 context.Context, arg1 db.CreateConvParams) (db.ConvReturn, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateConv", arg0, arg1)
+	ret0, _ := ret[0].(db.ConvReturn)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateConv indicates an expected call of CreateConv.
+func (mr *MockStoreMockRecorder) CreateConv(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConv", reflect.TypeOf((*MockStore)(nil).CreateConv), arg0, arg1)
+}
+
 // CreateConversation mocks base method.
 func (m *MockStore) CreateConversation(arg0 context.Context, arg1 sql.NullString) (db.Conversation, error) {
 	m.ctrl.T.Helper()

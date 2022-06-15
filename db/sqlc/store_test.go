@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/rjriverac/messaging-server/util"
@@ -53,4 +54,47 @@ func TestSendMessage(t *testing.T) {
 		_, err = store.GetUser_conversation(context.Background(), GetUser_conversationParams{UserID: sender.ID, ConvID: message.ConvID})
 		require.NoError(t, err)
 	}
+}
+
+// func TestCreateConvTx(t *testing.T) {
+// 	testCases := []struct {
+// 		desc string
+// 	}{
+// 		{
+// 			desc: "",
+// 		},
+// 	}
+// 	for _, tC := range testCases {
+// 		t.Run(tC.desc, func(t *testing.T) {
+
+// 		})
+// 	}
+// }
+
+func TestConvTx(t *testing.T) {
+	store := NewStore(testDB)
+
+	sendingUser := createRandomUser(t)
+
+	n := 5
+	convName := util.RandomString(n)
+
+	recepients := make([]User, n)
+	rUsers := make([]string, n)
+
+	for i := 0; i < n; i++ {
+		user := createRandomUser(t)
+		recepients[i] = user
+		rUsers[i] = user.Email
+	}
+
+	fmt.Printf("sendingUser:%+v\n", sendingUser)
+	fmt.Printf("rUsers:%+v\n", rUsers)
+
+	res, err := store.CreateConv(context.Background(), CreateConvParams{Name: NString(convName), ToUsers: rUsers, From: sendingUser.ID})
+
+	fmt.Printf("res:%+v\n", res)
+	require.NoError(t, err)
+	require.NotEmpty(t, res)
+
 }

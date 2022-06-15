@@ -10,6 +10,7 @@ import (
 type Store interface {
 	Querier
 	SendMessage(ctx context.Context, arg SendMessageParams) (SendResult, error)
+	CreateConv(ctx context.Context, arg CreateConvParams) (ConvReturn, error)
 }
 type SQLStore struct {
 	*Queries
@@ -52,6 +53,7 @@ type SendResult struct {
 }
 
 func (store *SQLStore) SendMessage(ctx context.Context, arg SendMessageParams) (SendResult, error) {
+
 	var result SendResult
 
 	// validate conversation exists, create message
@@ -93,4 +95,76 @@ func (store *SQLStore) SendMessage(ctx context.Context, arg SendMessageParams) (
 		return nil
 	})
 	return result, err
+}
+
+type NString string
+
+func (s *NString) toNullStr() sql.NullString {
+	if len(*s) == 0 {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: string(*s), Valid: true}
+}
+
+type NullString sql.NullString
+
+func (ns NullString) MarshalJson() string {
+	if ns.Valid {
+		return ns.String
+	}
+	return ""
+}
+
+type CreateConvParams struct {
+	Name    NString  `json:"name"`
+	ToUsers []string `json:"recipient_emails"`
+	From    int64    `json:"from"`
+}
+
+type ConvReturn struct {
+	Name string `json:"conv_name"`
+	ID   int64  `json:"conv_id"`
+}
+
+func (store *SQLStore) CreateConv(ctx context.Context, convParams CreateConvParams) (ConvReturn, error) {
+	var ret ConvReturn
+
+	err := store.execTx(ctx, func(q *Queries) error {
+		var err error
+
+		var validUsers []User
+
+		for _, email := range convParams.ToUsers {
+			user, err := q.GetUserByEmail(ctx, email)
+			if err != nil {
+				continue
+			}
+			validUsers = append(validUsers, user)
+		}
+		if len(validUsers) == 0 {
+			return err
+		}
+
+		conv, err := q.CreateConversation(ctx, convParams.Name.toNullStr())
+		if err != nil {
+			return err
+		}
+		q.CreateUser_conversation(ctx, CreateUser_conversationParams{UserID: convParams.From, ConvID: conv.ID})
+
+		for _, user := range validUsers {
+			if _, err := q.GetUser_conversation(ctx, GetUser_conversationParams{UserID: user.ID, ConvID: conv.ID}); err != nil {
+				if err == sql.ErrNoRows {
+					q.CreateUser_conversation(ctx, CreateUser_conversationParams{UserID: user.ID, ConvID: conv.ID})
+				}
+				continue
+			}
+		}
+		if err != nil {
+			return err
+		}
+		ret.Name = NullString(conv.Name).MarshalJson()
+		ret.ID = conv.ID
+		return nil
+	})
+	return ret, err
 }

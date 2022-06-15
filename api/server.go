@@ -59,6 +59,7 @@ func (server *Server) createRoutes() {
 
 	authRoutes.GET("/conversation", server.getConvos)
 	authRoutes.GET("/conversation/:id", server.detailConvo)
+	authRoutes.POST("/conversation", server.createConvo)
 
 	server.router = router
 }
