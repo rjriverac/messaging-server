@@ -18,6 +18,11 @@ SELECT id,
 FROM "Users"
 WHERE id = $1
 LIMIT 1;
+-- name: GetUserByEmail :one
+SELECT *
+FROM "Users"
+WHERE email = $1
+LIMIT 1;
 -- name: ListUsers :many
 SELECT id,
   name,

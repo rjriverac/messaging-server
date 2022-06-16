@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createConversation = `-- name: CreateConversation :one
@@ -45,6 +46,58 @@ func (q *Queries) GetConversation(ctx context.Context, id int64) (Conversation, 
 	var i Conversation
 	err := row.Scan(&i.ID, &i.Name)
 	return i, err
+}
+
+const listConvMessages = `-- name: ListConvMessages :many
+SELECT 
+"Message".from,"Message".content as message_content,"Message".created_at, "Message".id as message_id
+FROM
+"user_conversation"
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
+INNER JOIN "Message" on "Conversation".id = "Message".conv_id
+Where
+"user_conversation".conv_id = $1
+And "user_conversation".user_id=$2
+`
+
+type ListConvMessagesParams struct {
+	ConvID int64 `json:"convID"`
+	UserID int64 `json:"userID"`
+}
+
+type ListConvMessagesRow struct {
+	From           string    `json:"from"`
+	MessageContent string    `json:"messageContent"`
+	CreatedAt      time.Time `json:"createdAt"`
+	MessageID      int64     `json:"messageID"`
+}
+
+func (q *Queries) ListConvMessages(ctx context.Context, arg ListConvMessagesParams) ([]ListConvMessagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listConvMessages, arg.ConvID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListConvMessagesRow{}
+	for rows.Next() {
+		var i ListConvMessagesRow
+		if err := rows.Scan(
+			&i.From,
+			&i.MessageContent,
+			&i.CreatedAt,
+			&i.MessageID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listConversations = `-- name: ListConversations :many

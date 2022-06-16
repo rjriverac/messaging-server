@@ -17,6 +17,7 @@ import (
 	"github.com/lib/pq"
 	mockdb "github.com/rjriverac/messaging-server/db/mock"
 	db "github.com/rjriverac/messaging-server/db/sqlc"
+	"github.com/rjriverac/messaging-server/token"
 	"github.com/rjriverac/messaging-server/util"
 	"github.com/stretchr/testify/require"
 )
@@ -170,7 +171,7 @@ func TestCreateUser(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := "/account/"
 
@@ -196,10 +197,12 @@ func TestCreateUser(t *testing.T) {
 
 func TestGetUser(t *testing.T) {
 	account := randomUser()
+	mismatch := account.ID + 1
 
 	testCases := []struct {
 		name       string
 		uID        int64
+		setupAuth  func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs func(store *mockdb.MockStore)
 		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
@@ -212,9 +215,26 @@ func TestGetUser(t *testing.T) {
 					Times(1).
 					Return(account, nil)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, account.ID, time.Minute)
+			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, recorder.Code)
 				requireUserBody(t, recorder.Body, account)
+			},
+		}, {
+			name: "Mismatched IDs",
+			uID:  account.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().
+					GetUser(gomock.Any(), gomock.Any()).
+					Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, mismatch, time.Minute)
+			},
+			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		},
 		{
@@ -225,6 +245,9 @@ func TestGetUser(t *testing.T) {
 					GetUser(gomock.Any(), gomock.Eq(account.ID)).
 					Times(1).
 					Return(db.GetUserRow{}, sql.ErrNoRows)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, account.ID, time.Minute)
 			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -239,6 +262,9 @@ func TestGetUser(t *testing.T) {
 					Times(1).
 					Return(db.GetUserRow{}, sql.ErrConnDone)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, account.ID, time.Minute)
+			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
 			},
@@ -250,6 +276,9 @@ func TestGetUser(t *testing.T) {
 				store.EXPECT().
 					GetUser(gomock.Any(), gomock.Any()).
 					Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, account.ID, time.Minute)
 			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -266,11 +295,13 @@ func TestGetUser(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 			url := fmt.Sprintf("/account/%d", tc.uID)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
+
+			tc.setupAuth(t, request, server.tokenMaker)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkRes(t, recorder)
@@ -285,12 +316,16 @@ func TestListUsers(t *testing.T) {
 	testCases := []struct {
 		name       string
 		params     db.ListUsersParams
+		setupAuth  func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs func(store *mockdb.MockStore, params db.ListUsersParams)
 		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder)
 	}{
 		{
 			name:   "OK",
 			params: db.ListUsersParams{Limit: 10, Offset: 1},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, list[0].ID, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore, params db.ListUsersParams) {
 				store.EXPECT().
 					ListUsers(gomock.Any(), gomock.Eq(db.ListUsersParams{Limit: params.Limit, Offset: (params.Offset - 1) * params.Limit})).
@@ -309,6 +344,9 @@ func TestListUsers(t *testing.T) {
 					ListUsers(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, list[0].ID, time.Minute)
+			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
 			},
@@ -320,6 +358,9 @@ func TestListUsers(t *testing.T) {
 					ListUsers(gomock.Any(), gomock.Eq(db.ListUsersParams{Limit: params.Limit, Offset: (params.Offset - 1) * params.Limit})).
 					Times(1).
 					Return(list, sql.ErrConnDone)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, list[0].ID, time.Minute)
 			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -337,12 +378,14 @@ func TestListUsers(t *testing.T) {
 
 			tc.buildStubs(store, tc.params)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/account/?page_id=%d&page_size=%d", tc.params.Offset, tc.params.Limit)
 			request, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
+
+			tc.setupAuth(t, request, server.tokenMaker)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkRes(t, recorder)
@@ -443,6 +486,7 @@ func TestUpdateUser(t *testing.T) {
 		name       string
 		uId        int64
 		params     UpdateUserRequest
+		setupAuth  func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs func(store *mockdb.MockStore, params UpdateUserRequest, uID int64)
 		checkRes   func(t *testing.T, recorder *httptest.ResponseRecorder, params UpdateUserRequest, uID int64)
 	}{
@@ -455,6 +499,9 @@ func TestUpdateUser(t *testing.T) {
 				Image:    ToBeNullString(util.RandomString(5)),
 				Status:   ToBeNullString(util.RandomString(10)),
 				HashedPw: ToBeNullString(""),
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, user.ID, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore, params UpdateUserRequest, uId int64) {
 				store.EXPECT().
@@ -481,7 +528,7 @@ func TestUpdateUser(t *testing.T) {
 				requireUserUpdateBody(t, recorder.Body, params, uID)
 			},
 		}, {
-			name: "bad request UID",
+			name: "token error",
 			uId:  0,
 			params: UpdateUserRequest{
 				Name:     ToBeNullString(util.RandomUserGen()),
@@ -490,13 +537,16 @@ func TestUpdateUser(t *testing.T) {
 				Status:   ToBeNullString(util.RandomString(10)),
 				HashedPw: ToBeNullString(""),
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, "token", 0, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore, params UpdateUserRequest, uID int64) {
 				store.EXPECT().
 					UpdateUserInfo(gomock.Any(), gomock.Any()).
 					Times(0)
 			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder, params UpdateUserRequest, uID int64) {
-				require.Equal(t, http.StatusBadRequest, recorder.Code)
+				require.Equal(t, http.StatusUnauthorized, recorder.Code)
 			},
 		}, {
 			name:   "bad request json",
@@ -506,6 +556,9 @@ func TestUpdateUser(t *testing.T) {
 				store.EXPECT().
 					UpdateUserInfo(gomock.Any(), gomock.Any()).
 					Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, user.ID, time.Minute)
 			},
 			checkRes: func(t *testing.T, recorder *httptest.ResponseRecorder, params UpdateUserRequest, uID int64) {
 				require.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -519,6 +572,9 @@ func TestUpdateUser(t *testing.T) {
 				Image:    ToBeNullString(util.RandomString(5)),
 				Status:   ToBeNullString(util.RandomString(10)),
 				HashedPw: ToBeNullString(""),
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuth(t, request, tokenMaker, authTypeBearer, user.ID, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore, params UpdateUserRequest, uId int64) {
 				store.EXPECT().
@@ -555,13 +611,15 @@ func TestUpdateUser(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tc.buildStubs(store, tc.params, tc.uId)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
-			url := fmt.Sprintf("/account/?uid=%v", tc.uId)
+			url := "/account/"
 
 			marshalled, _ := json.Marshal(tc.params)
 			request, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(marshalled))
 			require.NoError(t, err)
+
+			tc.setupAuth(t, request, server.tokenMaker)
 
 			server.router.ServeHTTP(recorder, request)
 			tc.checkRes(t, recorder, tc.params, tc.uId)

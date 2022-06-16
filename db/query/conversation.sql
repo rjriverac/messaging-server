@@ -20,3 +20,13 @@ returning *;
 -- name: DeleteConversation :exec
 DELETE FROM "Conversation"
 WHERE ID = $1;
+-- name: ListConvMessages :many
+SELECT 
+"Message".from,"Message".content as message_content,"Message".created_at, "Message".id as message_id
+FROM
+"user_conversation"
+INNER JOIN "Conversation" on "user_conversation".conv_id = "Conversation".id
+INNER JOIN "Message" on "Conversation".id = "Message".conv_id
+Where
+"user_conversation".conv_id = $1
+And "user_conversation".user_id=$2;
