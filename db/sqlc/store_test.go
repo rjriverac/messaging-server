@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/rjriverac/messaging-server/util"
@@ -88,12 +87,8 @@ func TestConvTx(t *testing.T) {
 		rUsers[i] = user.Email
 	}
 
-	fmt.Printf("sendingUser:%+v\n", sendingUser)
-	fmt.Printf("rUsers:%+v\n", rUsers)
+	res, err := store.CreateConvTx(context.Background(), CreateConvParams{Name: NString(convName), ToUsers: rUsers, From: sendingUser.ID})
 
-	res, err := store.CreateConv(context.Background(), CreateConvParams{Name: NString(convName), ToUsers: rUsers, From: sendingUser.ID})
-
-	fmt.Printf("res:%+v\n", res)
 	require.NoError(t, err)
 	require.NotEmpty(t, res)
 

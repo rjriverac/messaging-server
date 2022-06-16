@@ -10,7 +10,7 @@ import (
 type Store interface {
 	Querier
 	SendMessage(ctx context.Context, arg SendMessageParams) (SendResult, error)
-	CreateConv(ctx context.Context, arg CreateConvParams) (ConvReturn, error)
+	CreateConvTx(ctx context.Context, arg CreateConvParams) (ConvReturn, error)
 }
 type SQLStore struct {
 	*Queries
@@ -126,7 +126,7 @@ type ConvReturn struct {
 	ID   int64  `json:"conv_id"`
 }
 
-func (store *SQLStore) CreateConv(ctx context.Context, convParams CreateConvParams) (ConvReturn, error) {
+func (store *SQLStore) CreateConvTx(ctx context.Context, convParams CreateConvParams) (ConvReturn, error) {
 	var ret ConvReturn
 
 	err := store.execTx(ctx, func(q *Queries) error {
