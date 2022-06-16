@@ -214,6 +214,12 @@ func (s *ToBeNullString) Scan(value interface{}) sql.NullString {
 	}
 	return res
 }
+func (s *ToBeNullString) ToNstring() sql.NullString {
+	if len(*s) == 0 {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: string(*s), Valid: true}
+}
 
 type UpdateUserRequest struct {
 	Name     ToBeNullString `json:"name"`
@@ -222,10 +228,6 @@ type UpdateUserRequest struct {
 	Status   ToBeNullString `json:"status"`
 	HashedPw ToBeNullString `json:"hashedPw"`
 }
-
-// type UpdateUserID struct {
-// 	ID int64 `form:"uid" binding:"required,min=1"`
-// }
 
 type UpdateUserReturn struct {
 	ID        int64     `json:"id"`
@@ -238,11 +240,7 @@ type UpdateUserReturn struct {
 
 func (server *Server) updateUser(g *gin.Context) {
 	var req UpdateUserRequest
-	// var uid UpdateUserID
-	// if err := g.ShouldBindQuery(&uid); err != nil {
-	// 	g.JSON(http.StatusBadRequest, errorResponse(err))
-	// 	return
-	// }
+
 	if err := g.ShouldBindJSON(&req); err != nil {
 		g.JSON(http.StatusBadRequest, errorResponse(err))
 		return

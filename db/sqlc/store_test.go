@@ -76,7 +76,7 @@ func TestConvTx(t *testing.T) {
 	sendingUser := createRandomUser(t)
 
 	n := 5
-	convName := util.RandomString(n)
+	convName := util.NullStrGen(5)
 
 	recepients := make([]User, n)
 	rUsers := make([]string, n)
@@ -87,7 +87,7 @@ func TestConvTx(t *testing.T) {
 		rUsers[i] = user.Email
 	}
 
-	res, err := store.CreateConvTx(context.Background(), CreateConvParams{Name: NString(convName), ToUsers: rUsers, From: sendingUser.ID})
+	res, err := store.CreateConvTx(context.Background(), CreateConvParams{Name: convName, ToUsers: rUsers, From: sendingUser.ID})
 
 	require.NoError(t, err)
 	require.NotEmpty(t, res)

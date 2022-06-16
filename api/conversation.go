@@ -55,12 +55,12 @@ func (server *Server) getConvos(g *gin.Context) {
 
 }
 
-type getConvDetail struct {
+type getConvDetailRequest struct {
 	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
 func (server *Server) detailConvo(g *gin.Context) {
-	var req getConvDetail
+	var req getConvDetailRequest
 	if err := g.ShouldBindUri(&req); err != nil {
 		g.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -84,6 +84,40 @@ func (server *Server) detailConvo(g *gin.Context) {
 	g.JSON(http.StatusOK, messages)
 }
 
+type createConvRequest struct {
+	Name    ToBeNullString `json:"conv_name"`
+	ToUsers []string       `json:"recipient_emails" binding:"required,gt=0,dive,required,email"`
+	From    int64          `json:"from" binding:"required,min=1"`
+}
+
+//
 func (server *Server) createConvo(g *gin.Context) {
 
+	var req createConvRequest
+
+	if err := g.ShouldBindJSON(&req); err != nil {
+		g.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	auth := g.MustGet(authPayloadKey).(*token.Payload)
+
+	arg := db.CreateConvParams{
+		Name:    req.Name.ToNstring(),
+		ToUsers: req.ToUsers,
+		From:    auth.User,
+	}
+
+	conv, err := server.store.CreateConvTx(context.Background(), arg)
+	if err != nil {
+		g.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ret := ConversationReturn{
+		ID:   conv.ID,
+		Name: conv.Name,
+	}
+
+	g.JSON(http.StatusAccepted, ret)
 }

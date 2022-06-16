@@ -97,15 +97,6 @@ func (store *SQLStore) SendMessage(ctx context.Context, arg SendMessageParams) (
 	return result, err
 }
 
-type NString string
-
-func (s *NString) toNullStr() sql.NullString {
-	if len(*s) == 0 {
-		return sql.NullString{Valid: false}
-	}
-	return sql.NullString{String: string(*s), Valid: true}
-}
-
 type NullString sql.NullString
 
 func (ns NullString) MarshalJson() string {
@@ -116,9 +107,9 @@ func (ns NullString) MarshalJson() string {
 }
 
 type CreateConvParams struct {
-	Name    NString  `json:"name"`
-	ToUsers []string `json:"recipient_emails"`
-	From    int64    `json:"from"`
+	Name    sql.NullString `json:"name"`
+	ToUsers []string       `json:"recipient_emails"`
+	From    int64          `json:"from"`
 }
 
 type ConvReturn struct {
@@ -137,7 +128,7 @@ func (store *SQLStore) CreateConvTx(ctx context.Context, convParams CreateConvPa
 		for _, email := range convParams.ToUsers {
 			user, err := q.GetUserByEmail(ctx, email)
 			if err != nil {
-				continue
+				return err
 			}
 			validUsers = append(validUsers, user)
 		}
@@ -145,7 +136,7 @@ func (store *SQLStore) CreateConvTx(ctx context.Context, convParams CreateConvPa
 			return err
 		}
 
-		conv, err := q.CreateConversation(ctx, convParams.Name.toNullStr())
+		conv, err := q.CreateConversation(ctx, convParams.Name)
 		if err != nil {
 			return err
 		}
