@@ -10,6 +10,9 @@ dropdb:
 upmigrate:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5588/message_db?sslmode=disable" -verbose up
 
+migrateupremote:
+	migrate -path db/migration -database "postgresql://root:vkVOTV1TbUWzsWZ7gag3@msg-server.cbotoshcrqdl.eu-central-1.rds.amazonaws.com:5432/message_db" -verbose up
+
 downnmigrate:
 	migrate -path db/migration -database "postgresql://root:secret@localhost:5588/message_db?sslmode=disable" -verbose down
 
@@ -25,4 +28,4 @@ server:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/rjriverac/messaging-server/db/sqlc Store
 
-.PHONY: postgres createdb dropdb upmigrate downnmigrate sqlc test server mock
+.PHONY: postgres createdb dropdb upmigrate downnmigrate sqlc test server mock migrateupremote
