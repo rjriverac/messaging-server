@@ -210,6 +210,7 @@ func (s *ToBeNullString) Scan(value interface{}) sql.NullString {
 		res = sql.NullString{String: "", Valid: false}
 	} else {
 		val := fmt.Sprintf("%v", value)
+		// val, _ := value.(string)
 		res = sql.NullString{String: val, Valid: true}
 	}
 	return res
@@ -226,7 +227,7 @@ type UpdateUserRequest struct {
 	Email    ToBeNullString `json:"email"`
 	Image    ToBeNullString `json:"image"`
 	Status   ToBeNullString `json:"status"`
-	HashedPw ToBeNullString `json:"hashedPw"`
+	Password string         `json:"password"`
 }
 
 type UpdateUserReturn struct {
@@ -248,14 +249,37 @@ func (server *Server) updateUser(g *gin.Context) {
 
 	auth := g.MustGet(authPayloadKey).(*token.Payload)
 
-	arg := db.UpdateUserInfoParams{
-		Name:     req.Name.Scan(req.Name),
-		Email:    req.Email.Scan(req.Email),
-		Image:    req.Image.Scan(req.Image),
-		Status:   req.Status.Scan(req.Status),
-		HashedPw: req.HashedPw.Scan(req.HashedPw),
-		ID:       auth.User,
+	var arg db.UpdateUserInfoParams
+	if len(req.Password) == 0 {
+		nPw := ToBeNullString(req.Password)
+		arg = db.UpdateUserInfoParams{
+			Name:     req.Name.Scan(req.Name),
+			Email:    req.Email.Scan(req.Email),
+			Image:    req.Image.Scan(req.Image),
+			Status:   req.Status.Scan(req.Status),
+			HashedPw: nPw.ToNstring(),
+			ID:       auth.User,
+		}
+	} else {
+
+		hashed, err := util.HashPassword(req.Password)
+		if err != nil {
+			g.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
+		}
+
+		nHash := ToBeNullString(hashed)
+
+		arg = db.UpdateUserInfoParams{
+			Name:     req.Name.Scan(req.Name),
+			Email:    req.Email.Scan(req.Email),
+			Image:    req.Image.Scan(req.Image),
+			Status:   req.Status.Scan(req.Status),
+			HashedPw: nHash.Scan(nHash),
+			ID:       auth.User,
+		}
 	}
+
 	user, err := server.store.UpdateUserInfo(g, arg)
 	if err != nil {
 		g.JSON(http.StatusInternalServerError, errorResponse(err))
