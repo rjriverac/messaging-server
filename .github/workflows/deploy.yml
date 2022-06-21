@@ -5,13 +5,19 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  deploy:
     name: Build image
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v2.0
+        with:
+          version: 'v1.24.2'
+        id: install
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
@@ -33,5 +39,13 @@ jobs:
           ECR_REPOSITORY: messageserv
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t latest .
+          docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
+      
+      - name: Deploy image to cluster
+        run: |
+          kubectl -f apply eks/aws-auth.yaml
+          kubectl -f apply eks/deployment.yaml
+          kubectl -f apply eks/service.yaml
+          kubectl -f apply eks/issuer.yaml
+          kubectl -f apply eks/ingress.yaml
