@@ -28,15 +28,15 @@ func NewPasetoMaker(symmetricKey string) (Maker, error) {
 	}
 	return maker, nil
 }
-func (maker *PasetoMaker) CreateToken(id int64, duration time.Duration) (string, error) {
+func (maker *PasetoMaker) CreateToken(id int64, duration time.Duration) (string, *Payload, error) {
 	payload, err := CreatePayload(id, duration)
 	if err != nil {
-		return "", err
+		return "", payload, err
 	}
 
 	marshalled, err := json.Marshal(payload)
 	if err != nil {
-		return "", err
+		return "", payload, err
 	}
 
 	// var unmarshalled *Payload
@@ -47,13 +47,13 @@ func (maker *PasetoMaker) CreateToken(id int64, duration time.Duration) (string,
 	// fmt.Printf("marshalled payload: %+v\n", unmarshalled)
 	token, err := paseto.NewTokenFromClaimsJSON(marshalled, nil)
 	if err != nil {
-		return "", err
+		return "", payload, err
 	}
 
 	token.SetIssuedAt(time.Now())
 	token.SetExpiration(time.Now().Add(duration))
 	token.SetNotBefore(time.Now())
-	return token.V4Encrypt(maker.symmetricKey, nil), nil
+	return token.V4Encrypt(maker.symmetricKey, nil), payload, nil
 
 }
 func (maker *PasetoMaker) VerifyToken(token string) (*Payload, error) {
