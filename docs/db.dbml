@@ -1,0 +1,51 @@
+Project message_server {
+  database_type: 'PostgreSQL'
+  Note: '''
+    # Messenger database
+  '''
+}
+
+
+Table Users as U {
+  id bigserial [pk, unique]
+  name varchar [not null]
+  email varchar [not null]
+  hashed_pw varchar [not null]
+  image varchar
+  status varchar
+  created_at timestamptz [not null,default: `now()`]
+}
+
+Table Message {
+  id bigserial [pk, unique]
+  from varchar [not null]
+  content varchar [not null]
+  created_at timestamptz [default: `now()`]
+  conv_id bigint [ref: > Conv.id]
+}
+
+Table Conversation as Conv {
+  id bigserial [pk, unique]
+  name varchar 
+}
+
+Table user_conversation {
+  id bigserial [pk]
+  user_id bigint [ref: > U.id]
+  conv_id bigint [ref: > Conv.id]
+  indexes {
+    (user_id,conv_id)
+  }
+}
+
+Table sessions {
+  id uuid [pk]
+  email varchar [not null, ref: > U.email]
+  user_id bigint [not null, ref: > U.id]
+  refresh_token varchar [not null]
+  user_agent varchar [not null]
+  client_ip varchar [not null]
+  is_blocked bool [not null, default: `false`]
+  expires_at timestamptz [not null]
+  created_at timestamptz [not null, default: `now()`]
+}

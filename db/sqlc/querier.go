@@ -7,11 +7,14 @@ package db
 import (
 	"context"
 	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
 	CreateConversation(ctx context.Context, name sql.NullString) (Conversation, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUser_conversation(ctx context.Context, arg CreateUser_conversationParams) (UserConversation, error)
 	DeleteConversation(ctx context.Context, id int64) error
@@ -21,6 +24,7 @@ type Querier interface {
 	DeleteUser_conversation_by_id(ctx context.Context, id int64) error
 	GetConversation(ctx context.Context, id int64) (Conversation, error)
 	GetMessage(ctx context.Context, id int64) (Message, error)
+	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetUser(ctx context.Context, id int64) (GetUserRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUser_conv_by_id(ctx context.Context, id int64) (UserConversation, error)
