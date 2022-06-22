@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: message-server-api
-        image: 505231867557.dkr.ecr.eu-central-1.amazonaws.com/messageserv:latest
+        image: ${{ secrets.AWS_CONTAINER_URL }}
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
